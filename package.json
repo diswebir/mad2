@@ -22,6 +22,7 @@
     "license:list": "node scripts/license.mjs list",
     "license:keygen": "node scripts/license.mjs keygen",
     "license:issue": "node scripts/license.mjs issue",
+    "license:make": "node scripts/license-wizard.mjs",
     "license:inspect": "node scripts/license.mjs inspect",
     "admin:reset": "node scripts/reset-admin.mjs",
     "format": "prettier --write src server shared scripts tests docs *.js *.json README.md app.cjs",

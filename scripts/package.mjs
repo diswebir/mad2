@@ -75,6 +75,22 @@ if (demo) {
     { mtime: new Date('2026-01-01T00:00:00Z') },
   ];
 }
+// کلید عمومی فروشنده به‌طور خودکار داخل بستهٔ فروشی قرار می‌گیرد تا مشتری
+// فقط لایسنسش را کنار داده بگذارد و هیچ فایل کدی را دست نزند.
+const publicKeyFile = 'license-keys/license-public.pem';
+let keyEmbedded = false;
+if (fs.existsSync(publicKeyFile) && entries['shared/license.js']) {
+  const pem = fs.readFileSync(publicKeyFile, 'utf8').trim();
+  const original = entries['shared/license.js'][0].toString('utf8');
+  const patched = original.replace(
+    "export const VENDOR_PUBLIC_KEY = '';",
+    `export const VENDOR_PUBLIC_KEY = \`${pem}\`;`,
+  );
+  if (patched !== original) {
+    entries['shared/license.js'] = [Buffer.from(patched, 'utf8'), entries['shared/license.js'][1]];
+    keyEmbedded = true;
+  }
+}
 const output = demo ? 'artifacts/madresehyar-demo-cpanel.zip' : 'artifacts/madresehyar-cpanel.zip';
 fs.mkdirSync('artifacts', { recursive: true });
 const bytes = zipSync(entries, { level: 8 });

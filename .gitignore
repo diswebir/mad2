@@ -12,3 +12,7 @@ test-results/
 .DS_Store
 artifacts/*.zip
 artifacts/*.sha256
+
+# کلیدهای فروشنده و دفتر لایسنس هرگز نباید در گیت بروند
+license-keys/
+license-registry.csv

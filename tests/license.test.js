@@ -247,3 +247,34 @@ test('license: base modules always stay available next to the purchased ones', (
   assert.equal(fromEnv.modules.includes('finance'), true);
   assert.equal(fromEnv.modules.includes('meetings'), false);
 });
+
+test('license: the simple wizard creates keys and a verifiable license by itself', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'madresehyar-wizard-'));
+  const script = path.resolve('scripts/license-wizard.mjs');
+  try {
+    // پاسخ‌ها به همان ترتیبی که جادوگر می‌پرسد: نام مدرسه، سریال خودکار، بستهٔ ۲ (استاندارد)،
+    // یادداشت خالی، و مادام‌العمر بودن.
+    const output = execFileSync('node', [script], {
+      cwd: dir,
+      encoding: 'utf8',
+      input: 'دبستان آزمایشی جادوگر\n\n2\n\nبله\n',
+    });
+    const privateFile = path.join(dir, 'license-keys', 'license-private.pem');
+    const publicFile = path.join(dir, 'license-keys', 'license-public.pem');
+    assert.ok(fs.existsSync(privateFile));
+    assert.ok(fs.existsSync(publicFile));
+    assert.match(output, /لایسنس ساخته شد/);
+    assert.match(output, /دبستان آزمایشی جادوگر/);
+    const issued = fs
+      .readdirSync(path.join(dir, 'license-keys'))
+      .filter((name) => name.startsWith('MY-'));
+    assert.equal(issued.length, 1);
+    const doc = JSON.parse(fs.readFileSync(path.join(dir, 'license-keys', issued[0]), 'utf8'));
+    assert.equal(doc.payload.customer, 'دبستان آزمایشی جادوگر');
+    assert.equal(verifyLicense(doc, fs.readFileSync(publicFile, 'utf8')).valid, true);
+    for (const id of ['finance', 'library', 'reports']) assert.ok(doc.payload.modules.includes(id));
+    assert.equal(doc.payload.expires, '');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
