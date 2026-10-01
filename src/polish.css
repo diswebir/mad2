@@ -1,0 +1,841 @@
+/* Readable typography and neutral ink keep the soft education palette accessible. */
+@layer polish {
+  :root {
+    --ink: #414254;
+    --secondary: #746c80;
+  }
+  .nav-item {
+    font-size: 14px;
+    gap: 12px;
+  }
+  .nav-label {
+    font-size: 12px;
+  }
+  .school-switch strong {
+    font-size: 13px;
+  }
+  .school-switch small {
+    font-size: 11px;
+  }
+  .profile-button strong {
+    font-size: 13px;
+  }
+  .profile-button small {
+    font-size: 12px;
+  }
+  .topbar-search {
+    font-size: 13px;
+  }
+  .topbar-search kbd {
+    font-size: 11px;
+  }
+  .breadcrumbs,
+  .breadcrumbs strong {
+    font-size: 12px;
+  }
+  .academic-pill {
+    font-size: 12px;
+  }
+  .support-card strong {
+    font-size: 12px;
+  }
+  .support-card small {
+    font-size: 11px;
+  }
+  .sidebar-version {
+    font-size: 11px;
+  }
+  .page-header p {
+    font-size: 14px;
+    color: #676975;
+  }
+  .welcome-eyebrow {
+    font-size: 12px;
+  }
+  .welcome-copy h2 {
+    color: #64507f;
+    font-size: 23px;
+  }
+  .welcome-copy > p {
+    font-size: 13px;
+    color: #6f647d;
+  }
+  .welcome-bottom > .btn {
+    font-size: 12px;
+  }
+  .welcome-ticket {
+    font-size: 12px;
+    color: #71657e;
+  }
+  .stat-top > span {
+    font-size: 13px;
+    color: #696874;
+  }
+  .stat-value {
+    font-size: 31px;
+    color: #4e4b60;
+  }
+  .stat-value small {
+    font-size: 12px;
+  }
+  .stat-bottom > span:not(.badge) {
+    font-size: 11px;
+    color: #6b6777;
+  }
+  .stat-bottom > .badge {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  .dashboard-middle .panel-heading h2,
+  .dashboard-bottom .panel-heading h2 {
+    font-size: 15px;
+  }
+  .dashboard-middle .panel-heading p,
+  .dashboard-bottom .panel-heading p {
+    font-size: 12px;
+  }
+  .chart-legend {
+    font-size: 12px;
+    color: #6b6877;
+  }
+  .chart-legend > small {
+    font-size: 11px;
+    color: #6b6676;
+  }
+  .chart-label {
+    font-size: 12px;
+    fill: #6d6776;
+  }
+  .chart-tooltip {
+    font-size: 12px;
+  }
+  .chart-footer {
+    font-size: 11px;
+    color: #6d6778;
+  }
+  .chart-footer > a {
+    font-size: 11px;
+  }
+  .announcement-title h3 {
+    font-size: 13px;
+    color: #665a75;
+  }
+  .announcement-title > span {
+    font-size: 11px;
+    color: #6f677a;
+  }
+  .announcement-preview p {
+    font-size: 12px;
+    color: #6f657b;
+  }
+  .announcement-preview small {
+    font-size: 11px;
+    color: #756387;
+  }
+  .announcement-icon {
+    width: 35px;
+    height: 35px;
+  }
+  .dashboard-student-table th {
+    font-size: 12px;
+  }
+  .dashboard-student-table td {
+    font-size: 12px;
+  }
+  .dashboard-student-table .person-cell strong {
+    font-size: 13px;
+    color: #565164;
+  }
+  .dashboard-student-table .person-cell small {
+    font-size: 11px;
+  }
+  .dashboard-student-table .class-pill,
+  .dashboard-student-table .badge {
+    font-size: 12px;
+  }
+  .event-preview h3 {
+    font-size: 13px;
+    color: #73647c;
+  }
+  .event-preview p {
+    font-size: 11px;
+    color: #716579;
+  }
+  .event-preview {
+    padding-block: 12px;
+  }
+  .event-date {
+    height: 46px;
+    width: 43px;
+  }
+  .event-date > span {
+    font-size: 11px;
+  }
+  .panel-bottom-link {
+    font-size: 12px;
+  }
+  .dashboard-note {
+    font-size: 12px;
+  }
+  .demo-note {
+    font-size: 11px;
+  }
+  .badge-green {
+    color: #397655;
+  }
+  .badge-orange {
+    color: #85643a;
+  }
+  .badge-purple {
+    color: #785ca8;
+  }
+  .badge-blue {
+    color: #4a6c96;
+  }
+  .badge-red {
+    color: #9d525f;
+  }
+  .badge-pink {
+    color: #8b5979;
+  }
+  .module-card h2,
+  .resource-card > h3,
+  .class-detail-summary h3,
+  .student-profile-hero h2,
+  .school-settings-brand h3,
+  .account-identity h2,
+  .achievement-panel h3,
+  .finance-report-heading h2,
+  .calendar-month-heading h2,
+  .calendar-agenda h2,
+  .agenda-events h3,
+  .full-notification-item h3,
+  .backup-panel h2,
+  .install-card-header > h2,
+  .install-success h3,
+  .installed-account strong {
+    color: var(--ink);
+  }
+  .module-card p {
+    font-size: 13px;
+    color: #6a6875;
+    line-height: 1.95;
+  }
+  .module-card-meta > span:last-child {
+    font-size: 12px;
+    color: #6e6779;
+  }
+  .module-card-footer > button {
+    font-size: 12px;
+    color: #776090;
+  }
+  .module-stats strong {
+    color: #716181;
+    font-size: 28px;
+  }
+  .module-stats > div > span:last-child {
+    font-size: 12px;
+    color: #6d6579;
+  }
+  .modules-bottom-note p {
+    font-size: 12px;
+    color: #6d6778;
+  }
+  .feature-modal-banner p {
+    color: #726283;
+    font-size: 13px;
+  }
+  .feature-list strong {
+    font-size: 13px;
+    color: #726383;
+  }
+  .feature-list small {
+    font-size: 12px;
+    color: #6f6579;
+  }
+  .feature-index {
+    font-size: 12px;
+    color: #756385;
+  }
+  .feature-list .info-box,
+  .info-box span {
+    color: #71637f;
+  }
+  .form-stack > label,
+  .form-stack .form-grid > label,
+  .form-field,
+  .form-field > label,
+  .settings-school .form-field,
+  .profile-settings-forms .form-stack label,
+  .install-card-body label {
+    color: #6b6879;
+  }
+  .resource-card > p {
+    color: #6e6579;
+    font-size: 12px;
+  }
+  .card-detail-fields > div {
+    font-size: 12px;
+    color: #6f6579;
+  }
+  .card-detail-fields strong {
+    font-size: 13px;
+    color: #76637f;
+  }
+  .class-capacity {
+    font-size: 12px;
+    color: #72657f;
+  }
+  .class-capacity > small {
+    font-size: 12px;
+    color: #6f6679;
+  }
+  .class-teacher strong {
+    font-size: 13px;
+    color: #776181;
+  }
+  .class-teacher small {
+    font-size: 12px;
+    color: #71637f;
+  }
+  .resource-card-link {
+    font-size: 13px;
+    color: #7a5e93;
+  }
+  .roster-item {
+    color: #73637d;
+  }
+  .detail-field > span {
+    color: #6d6875;
+    font-size: 12px;
+  }
+  .detail-field > strong {
+    color: #6c677a;
+    font-size: 14px;
+  }
+  .student-profile-hero p {
+    color: #706678;
+    font-size: 13px;
+  }
+  .student-profile-hero small {
+    color: #6f657b;
+    font-size: 12px;
+  }
+  .profile-stat-row strong {
+    color: #795e8b;
+  }
+  .profile-stat-row span {
+    color: #73657b;
+    font-size: 12px;
+  }
+  .grade-value.good {
+    color: #4e7160;
+  }
+  .grade-value {
+    color: #82633f;
+  }
+  .grade-value small {
+    color: #716579;
+  }
+  .document-list strong,
+  .profile-records strong {
+    color: #7a6187;
+  }
+  .document-list small,
+  .profile-records small {
+    color: #736281;
+  }
+  .profile-records p {
+    color: #71637e;
+  }
+  .assignment-description {
+    color: #7a6186;
+  }
+  .submission-header > strong {
+    color: #796283;
+  }
+  .submission-card > p {
+    color: #766180;
+    font-size: 14px;
+  }
+  .teacher-feedback {
+    color: #776184;
+  }
+  .assignment-submit-form {
+    color: #79618b;
+  }
+  .invoice-summary strong {
+    color: #7a6187;
+  }
+  .invoice-summary > div {
+    color: #73647e;
+    font-size: 12px;
+  }
+  .invoice-meta {
+    color: #756381;
+  }
+  .csv-file-field {
+    color: #796185;
+  }
+  .import-success h3 {
+    color: #796283;
+  }
+  .import-success p {
+    color: #74637f;
+  }
+  .class-detail-summary p {
+    color: #746381;
+  }
+  .attendance-summary-card strong {
+    color: #796184;
+  }
+  .attendance-summary-card strong > small {
+    color: #73637d;
+  }
+  .attendance-summary-card > div > span {
+    color: #75627f;
+  }
+  .control-field > label {
+    color: #72637d;
+    font-size: 12px;
+  }
+  .control-field > select {
+    color: #796184;
+  }
+  .attendance-day-note {
+    color: #73637e;
+  }
+  .date-picker {
+    color: #7a6089;
+  }
+  .attendance-note-input {
+    color: #7a5e89;
+  }
+  .attendance-note-input::placeholder {
+    color: #73657f;
+    font-size: 12px;
+  }
+  .attendance-table-footer {
+    color: #72637e;
+  }
+  .status-option {
+    color: #73637f;
+  }
+  .status-option.selected.tone-green {
+    color: #51715f;
+  }
+  .status-option.selected.tone-red {
+    color: #92596c;
+  }
+  .status-option.selected.tone-orange {
+    color: #7f6442;
+  }
+  .status-option.selected.tone-purple {
+    color: #75618a;
+  }
+  .ticket-overview-card strong {
+    color: #776381;
+  }
+  .ticket-overview-card > span:last-child {
+    color: #756381;
+    font-size: 12px;
+  }
+  .ticket-privacy {
+    color: #746283;
+    font-size: 12px;
+  }
+  .inbox-header h2 {
+    color: #776280;
+    font-size: 15px;
+  }
+  .ticket-preview-top strong {
+    color: #776182;
+    font-size: 12px;
+  }
+  .ticket-preview-top small {
+    color: #73637f;
+    font-size: 11px;
+  }
+  .ticket-preview h3 {
+    color: #796186;
+    font-size: 13px;
+  }
+  .ticket-preview-bottom {
+    color: #73647f;
+  }
+  .ticket-preview-bottom .badge {
+    font-size: 11px;
+  }
+  .inbox-filters button {
+    font-size: 12px;
+    color: #756382;
+  }
+  .inbox-filters button.active {
+    color: #795f8d;
+  }
+  .conversation-header h2 {
+    font-size: 15px;
+    color: #786284;
+  }
+  .conversation-header p {
+    font-size: 11px;
+    color: #756382;
+  }
+  .conversation-header .select-sm {
+    color: #79608f;
+    font-size: 12px;
+  }
+  .message-meta strong {
+    color: #79618a;
+    font-size: 12px;
+  }
+  .message-meta span {
+    color: #756481;
+    font-size: 11px;
+  }
+  .message-bubble {
+    background: #f6f4fa;
+    border-color: #eeebf5;
+    color: #766182;
+    font-size: 13px;
+  }
+  .from-me .message-bubble {
+    background: #eee5fa;
+    border-color: #e5d9f4;
+    color: #796284;
+  }
+  .message-content > small {
+    font-size: 11px;
+    color: #73657d;
+  }
+  .reply-form > textarea {
+    color: #776185;
+    font-size: 13px;
+  }
+  .reply-form > textarea::placeholder {
+    color: #72637b;
+    font-size: 12px;
+  }
+  .reply-form .btn {
+    font-size: 12px;
+  }
+  .message-attachment {
+    color: #756382;
+  }
+  .closed-ticket-note {
+    color: #756383;
+    font-size: 12px;
+  }
+  .conversation-start {
+    font-size: 11px;
+    color: #73647d;
+  }
+  .school-settings-brand p {
+    color: #71657d;
+    font-size: 12px;
+  }
+  .secure-label {
+    color: #5d6f5a;
+  }
+  .audit-list strong {
+    font-size: 13px;
+    color: #795f87;
+  }
+  .audit-list p {
+    color: #756183;
+  }
+  .audit-list > div > span:last-child {
+    color: #756381;
+  }
+  .audit-list > div > div > small {
+    color: #75647e;
+  }
+  .backup-panel > p {
+    color: #756282;
+  }
+  .backup-notes strong {
+    color: #7a5f8d;
+  }
+  .backup-notes > div {
+    color: #756381;
+    font-size: 12px;
+  }
+  .account-identity > div {
+    color: #736480;
+    font-size: 12px;
+  }
+  .account-identity > div strong {
+    color: #7a5e8c;
+  }
+  .account-identity > p {
+    color: #756481;
+  }
+  .profile-settings-forms .panel-heading h2 {
+    color: #796084;
+  }
+  .full-notification-item p {
+    color: #756284;
+    font-size: 13px;
+  }
+  .full-notification-item small {
+    color: #73637e;
+    font-size: 12px;
+  }
+  .report-stat > strong {
+    color: #796186;
+  }
+  .report-stat > span:not(.stat-icon) {
+    color: #756183;
+  }
+  .report-stat > small {
+    color: #756481;
+  }
+  .reports-main-grid .panel-heading h2 {
+    color: #7b5e8b;
+  }
+  .reports-main-grid .panel-heading p {
+    color: #776382;
+  }
+  .score-donut strong {
+    color: #7b5d8c;
+  }
+  .score-donut span {
+    color: #746381;
+  }
+  .achievement-panel > p {
+    color: #746380;
+    font-size: 12px;
+  }
+  .finance-report-heading p {
+    color: #746381;
+  }
+  .finance-report-grid > div > span {
+    color: #756182;
+  }
+  .finance-report-grid strong {
+    color: #7b608a;
+  }
+  .finance-report-grid small {
+    color: #746381;
+  }
+  .report-progress > span {
+    color: #746281;
+  }
+  .calendar-weekdays > span {
+    color: #766383;
+  }
+  .calendar-day-number {
+    color: #756283;
+  }
+  .calendar-agenda .panel-heading p {
+    color: #756381;
+  }
+  .agenda-events p {
+    color: #756383;
+  }
+  .agenda-note {
+    color: #776382;
+  }
+  .calendar-month-heading h2 {
+    font-size: 20px;
+  }
+  .agenda-events h3 {
+    font-size: 14px;
+  }
+  .auth-form-container h1 {
+    color: #655372;
+  }
+  .auth-form-container > p {
+    color: #71657b;
+    font-size: 13px;
+  }
+  .auth-form-container .form-stack > label {
+    color: #74627f;
+  }
+  .auth-form-container input {
+    color: #786184;
+  }
+  .auth-form-container input::placeholder {
+    color: #73657e;
+  }
+  .login-submit {
+    background: var(--primary);
+  }
+  .login-submit:hover:not(:disabled) {
+    background: var(--primary-dark);
+  }
+  .login-options {
+    font-size: 12px;
+  }
+  .login-options > button {
+    color: #736281;
+    font-size: 12px;
+  }
+  .login-options > span {
+    color: #71637f;
+  }
+  .auth-visual h2 {
+    color: #7b6088;
+  }
+  .auth-visual h2 em {
+    color: #75608a;
+  }
+  .auth-visual > p {
+    color: #746280;
+  }
+  .auth-visual-tag {
+    color: #776383;
+  }
+  .auth-feature-tags > span {
+    color: #736281;
+  }
+  .auth-form-container > .auth-support {
+    font-size: 12px;
+    color: #746381;
+  }
+  .auth-support > button {
+    font-size: 12px;
+    color: #756183;
+  }
+  .demo-login button {
+    color: #756283;
+    font-size: 12px;
+  }
+  .demo-login > p {
+    font-size: 11px;
+    color: #756281;
+  }
+  .auth-visual-bottom {
+    color: #72637f;
+  }
+  .auth-footer {
+    color: #73637f;
+  }
+  .install-sidebar h1 {
+    color: #796283;
+  }
+  .install-sidebar h1 > em {
+    color: #746287;
+  }
+  .install-sidebar > p {
+    color: #756381;
+    font-size: 13px;
+  }
+  .install-card-header > p {
+    color: #75627f;
+    font-size: 13px;
+  }
+  .install-card-header > .eyebrow {
+    color: #776383;
+  }
+  .install-card-body input,
+  .install-card-body textarea,
+  .install-card-body select {
+    color: #756382;
+  }
+  .requirements-list strong {
+    color: #74637c;
+    font-size: 13px;
+  }
+  .requirements-list > div > div > span {
+    color: #72637d;
+    font-size: 12px;
+  }
+  .cpanel-install-note h3 {
+    color: #766381;
+  }
+  .cpanel-install-note p {
+    color: #736380;
+    font-size: 12px;
+  }
+  .cpanel-install-note small {
+    color: #746380;
+  }
+  .install-card-footer .btn-primary {
+    background: var(--primary);
+  }
+  .install-steps strong {
+    color: #756481;
+    font-size: 13px;
+  }
+  .install-steps > .active strong {
+    color: #766383;
+  }
+  .install-steps small {
+    color: #73647b;
+    font-size: 11px;
+  }
+  .wizard-modules > div {
+    color: #756183;
+    font-size: 12px;
+  }
+  .wizard-module-heading {
+    color: #766384;
+    font-size: 12px;
+  }
+  .wizard-demo-option strong {
+    color: #7a6188;
+    font-size: 13px;
+  }
+  .wizard-demo-option p {
+    color: #766283;
+    font-size: 12px;
+  }
+  .install-success > p {
+    color: #746380;
+    font-size: 13px;
+  }
+  .install-success-features > span {
+    color: #776382;
+    font-size: 12px;
+  }
+  .installed-account p {
+    color: #656b5d;
+  }
+  .installed-account strong {
+    color: #626d59;
+  }
+  .install-topbar > span {
+    color: #75637f;
+  }
+  .install-sidebar-note,
+  .install-footer {
+    color: #756381;
+  }
+  .wizard-module-heading > button {
+    color: #756186;
+  }
+}
+
+@layer polish {
+  .dashboard-one-panel {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-activities .panel-heading {
+    margin-bottom: 0;
+  }
+  .dashboard-activity-list {
+    padding: 0 24px 16px;
+  }
+  .dashboard-activity-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    border-top: 1px solid var(--line);
+  }
+  .dashboard-activity-row strong {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .dashboard-activity-row p,
+  .dashboard-activity-row time,
+  .activity-empty {
+    font-size: 12px;
+    color: var(--secondary);
+  }
+  .dashboard-activity-row time {
+    margin-inline-start: auto;
+    white-space: nowrap;
+  }
+}

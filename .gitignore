@@ -1,0 +1,14 @@
+node_modules/
+.cache/
+dist/
+.env
+.env.*
+!.env.example
+data/*
+!data/.gitkeep
+playwright-report/
+test-results/
+*.log
+.DS_Store
+artifacts/*.zip
+artifacts/*.sha256

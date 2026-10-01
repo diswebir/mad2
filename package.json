@@ -1,0 +1,51 @@
+{
+  "name": "madresehyar",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "سامانه ماژولار مدیریت مدرسه با نصب آسان روی cPanel",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"cross-env NODE_ENV=development DEMO_MODE=true node --watch server/index.js\" \"vite --host 0.0.0.0\"",
+    "build": "vite build",
+    "start": "node app.cjs",
+    "preview": "cross-env NODE_ENV=development DEMO_MODE=true node app.cjs",
+    "test": "node --test tests/*.test.js",
+    "check": "npm run build && npm test",
+    "test:e2e": "playwright test",
+    "features": "node scripts/features.mjs",
+    "package:cpanel": "npm run build && node scripts/package.mjs",
+    "admin:reset": "node scripts/reset-admin.mjs",
+    "format": "prettier --write src server shared scripts tests docs *.js *.json README.md app.cjs",
+    "format:check": "prettier --check src server shared scripts tests docs *.js *.json README.md app.cjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/vazirmatn": "^5.3.0",
+    "bcryptjs": "^3.0.2",
+    "compression": "^1.8.2",
+    "cookie-parser": "^1.4.7",
+    "csv-parse": "^7.0.3",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "lucide-react": "^0.468.0",
+    "multer": "^2.0.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.3",
+    "sql.js": "^1.13.0",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@vitejs/plugin-react": "^5.0.3",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.0.0",
+    "fflate": "^0.8.2",
+    "prettier": "^3.9.9",
+    "vite": "^7.1.7"
+  }
+}
