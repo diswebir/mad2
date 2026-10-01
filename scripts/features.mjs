@@ -1,0 +1,101 @@
+import { format } from 'prettier';
+import fs from 'node:fs';
+import { featureDefs, moduleDefs, resourceDefs, roles } from '../shared/catalog.js';
+const extraRoutes = {
+  'dashboard.view': 'GET /api/dashboard',
+  'dashboard.statistics': 'GET /api/dashboard → stats',
+  'dashboard.chart': 'GET /api/dashboard?period=current|previous → chart',
+  'dashboard.activities': 'GET /api/dashboard → activities',
+  'students.profile': 'GET /api/students/:id/profile',
+  'students.export': 'GET /api/entities/students/export',
+  'students.import': 'POST /api/entities/students/import (multipart CSV)',
+  'students.account': 'POST /api/settings/accounts/create/students/:id + auto on create',
+  'teachers.account': 'POST /api/settings/accounts/create/teachers/:id + auto on create',
+  'classes.roster': 'GET /api/classes/:id/roster',
+  'attendance.view': 'GET /api/attendance?class_id=&date=',
+  'attendance.record': 'POST /api/attendance',
+  'attendance.bulk': 'POST /api/attendance (records > 1)',
+  'attendance.export': 'GET /api/attendance/export',
+  'attendance.history': 'GET /api/attendance/student/:id',
+  'tickets.view': 'GET /api/tickets + GET /api/tickets/:id',
+  'tickets.create': 'POST /api/tickets',
+  'tickets.reply': 'POST /api/tickets/:id/messages',
+  'tickets.manage': 'PATCH /api/tickets/:id',
+  'tickets.attachments': 'POST /api/files?context=tickets + authorized GET /api/files/:id',
+  'assignments.submit': 'POST /api/assignments/:id/submit',
+  'assignments.review':
+    'GET /api/assignments/:id/submissions + PATCH /api/assignments/:id/submissions/:submissionId',
+  'reports.view': 'GET /api/reports',
+  'reports.export': 'GET /api/reports/export',
+  'notifications.view': 'GET /api/notifications',
+  'notifications.read': 'PATCH /api/notifications/read',
+  'profile.edit': 'PATCH /api/auth/profile',
+  'profile.password': 'POST /api/auth/password',
+  'settings.school': 'PATCH /api/settings/school',
+  'settings.modules': 'PATCH /api/settings/modules/:id + PATCH /api/settings/features/:id',
+  'settings.accounts': 'GET/POST /api/settings/accounts + PATCH /api/settings/accounts/:id',
+  'settings.reset_password': 'POST /api/settings/accounts/:id/reset-password',
+  'settings.backup': 'GET /api/settings/backup',
+  'settings.audit': 'GET /api/settings/audit',
+};
+const ui = {
+  dashboard: '/',
+  students: '/students',
+  teachers: '/teachers',
+  classes: '/classes',
+  attendance: '/attendance',
+  education: '/education',
+  tickets: '/tickets',
+  announcements: '/announcements',
+  calendar: '/calendar',
+  finance: '/finance',
+  library: '/library',
+  services: '/services',
+  reports: '/reports',
+  notifications: '/notifications',
+  profile: '/profile',
+  settings: '/settings',
+};
+const crudRoute = (f) =>
+  ({
+    view: `GET /api/entities/${f.resource}`,
+    create: `POST /api/entities/${f.resource}`,
+    edit: `PATCH /api/entities/${f.resource}/:id`,
+    delete: `DELETE /api/entities/${f.resource}/:id`,
+  })[f.action];
+const roleNames = (f) => {
+  if (f.resource)
+    return (f.action === 'view' ? resourceDefs[f.resource].read : resourceDefs[f.resource].write)
+      .map((r) => roles[r])
+      .join('، ');
+  if (
+    f.id.startsWith('settings.') ||
+    ['students.import', 'students.account', 'teachers.account'].includes(f.id)
+  )
+    return roles.admin;
+  if (['attendance.record', 'attendance.bulk', 'assignments.review'].includes(f.id))
+    return `${roles.admin}، ${roles.teacher}`;
+  if (f.id === 'assignments.submit') return roles.student;
+  if (f.id === 'tickets.manage') return 'گیرندهٔ تیکت یا مدیر';
+  return 'همه نقش‌ها با scope مجاز';
+};
+let text = `# فهرست دقیق ${featureDefs.length} قابلیت نسخهٔ اول\n\nاین فهرست از \`shared/catalog.js\` با \`npm run features\` ساخته می‌شود. همهٔ موارد زیر endpoint یا بخش UI واقعی دارند؛ برنامه‌ریزی آینده در این شمارش نیست.\n\n**تعریف شمارش:** ${Object.keys(resourceDefs).length} نوع پرونده × چهار عملیات مستقل مشاهده/جست‌وجو/فیلتر/صفحه‌بندی، ثبت، ویرایش و حذف ایمن = ۱۰۰ قابلیت؛ به‌علاوهٔ ۳۴ workflow و کنترل مستقل. ۱۳۴ نام تجاری مجزا یا ۱۳۴ صفحه ادعا نشده است.\n\nکلید ماژول و کلید قابلیت در UI و سرور اعمال می‌شوند. نقش و scope حتی پس از فعال‌بودن کلید لازم‌اند. قابلیت مدیریت کلیدها و ماژول پایهٔ تنظیمات برای جلوگیری از قفل مدیریت ضروری‌اند. «تغییر رمز اجباری» نیز با خاموش‌شدن تغییر رمز اختیاری از دسترس خارج نمی‌شود.\n\n`;
+let index = 0;
+for (const mod of moduleDefs) {
+  const features = featureDefs.filter((f) => f.module === mod.id);
+  text += `## ${mod.name} — ${new Intl.NumberFormat('fa-IR').format(features.length)} قابلیت\n\n${mod.description}\n\n| ردیف | قابلیت | کلید ثابت | دسترسی | وضعیت |\n| --- | --- | --- | --- | --- |\n`;
+  for (const f of features) {
+    const route = f.resource ? crudRoute(f) : extraRoutes[f.id];
+    if (!route) throw new Error(`Missing implementation mapping: ${f.id}`);
+    text += `| ${++index} | ${f.name} | \`${f.id}\` | ${roleNames(f)} | ${f.locked ? 'هستهٔ ضروری' : 'پیاده‌سازی‌شده'} |\n`;
+  }
+  text += `\n**محل استفاده:** \`${ui[mod.id]}\`؛ برای پرونده‌های چندزبانه، tab مربوط به پرونده را انتخاب کنید.\n\n`;
+  for (const f of features)
+    text += `- **${f.id}**: \`${f.resource ? crudRoute(f) : extraRoutes[f.id]}\`\n`;
+  text += '\n';
+}
+text +=
+  '## ابزارهای تکمیلی خارج از شمارش\n\nویزارد نصب توکن‌دار، جست‌وجوی سراسری مجاز، فونت محلی وزیرمتن، رابط RTL، ورود و نشست امن، نمایش کارت/جدول، انتخاب‌گرهای رابطه، CSV عمومی پرونده‌های مجاز و بستهٔ cPanel وجود دارند ولی دوباره در عدد ۱۳۴ شمرده نشده‌اند.\n\n## موارد خارج از نسخهٔ اول\n\nدرگاه پرداخت آنلاین، SMS/ایمیل خودکار، اتصال سناد/شاد، MFA، آزمون آنلاین سؤالی، کارنامهٔ رسمی مصوب، چندمدرسه‌ای، پنل چندفرزندی ولی و ذخیرهٔ چند worker پیاده نشده‌اند. CSV فایل اکسل XLSX نیست؛ در Excel قابل بازشدن است. پشتیبان SQLite شامل uploads نیست.\n\n## آزمون\n\n`tests/api.test.js` همهٔ ۱۰۰ عملیات عمومی را روی ۲۵ نوع پرونده اجرا می‌کند و مجوز، خاموش‌شدن ماژول/قابلیت، تراکنش، حضور، تیکت، فایل، تکلیف، پرداخت، ورود اجباری رمز، نصب یک‌باره و دوام/قفل بانک را نیز بررسی می‌کند. تست مرورگر در `tests/ui.spec.js` است.\n';
+fs.mkdirSync('docs', { recursive: true });
+fs.writeFileSync('docs/FEATURES.md', await format(text, { parser: 'markdown', printWidth: 100 }));
+console.log(`Generated docs/FEATURES.md: ${index} features / ${moduleDefs.length} modules.`);
