@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import { moduleDefs, featureDefs } from '../../shared/catalog.js';
+import { VENDOR } from '../../shared/license.js';
 import { assert, parse, passwordSchema, randomPassword, log } from '../security.js';
 import { seedDemo } from '../seed.js';
 export function installationRouter(db, security, { installToken, demo }) {
@@ -20,7 +21,13 @@ export function installationRouter(db, security, { installToken, demo }) {
     res.json({
       installed: !!db.setting('installed'),
       demo,
-      version: '1.1.0',
+      vendor: {
+        name: VENDOR.name,
+        name_latin: VENDOR.name_latin,
+        url: VENDOR.url,
+        product: VENDOR.product,
+      },
+      version: '1.1.1',
       features: featureDefs.length,
       modules: moduleDefs.map((m) => ({ ...m, entitled: security.entitledModule(m.id) })),
       requirements: [

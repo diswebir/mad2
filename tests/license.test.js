@@ -199,6 +199,8 @@ test('license: the issue CLI writes a file the server accepts end to end', () =>
     const doc = JSON.parse(fs.readFileSync(out, 'utf8'));
     assert.ok(doc.payload.modules.includes('finance'));
     assert.ok(doc.payload.modules.includes('meetings'));
+    assert.equal(doc.payload.issuer, 'شرکت دیس وب');
+    assert.equal(doc.payload.issuer_url, 'https://disweb.ir');
     assert.equal(verifyLicense(doc, fs.readFileSync(publicFile, 'utf8')).valid, true);
 
     const dataDir = path.join(dir, 'data');
@@ -222,10 +224,32 @@ test('license: the issue CLI writes a file the server accepts end to end', () =>
       ['scripts/license.mjs', 'inspect', '--license', out, '--key', publicFile],
       { cwd: process.cwd(), encoding: 'utf8' },
     );
-    assert.match(inspected, /معتبر/);
+    assert.match(inspected, /VALID/);
+    assert.match(inspected, /disweb\.ir/);
     assert.match(inspected, /دبیرستان نمونه/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('vendor: Dis Web is exposed on health, config, status and in every license', async () => {
+  const f = await auditFixture({ license: paidLicense(['finance']) });
+  try {
+    const health = await f.client().request('/health');
+    assert.equal(health.status, 200);
+    assert.equal(health.data.vendor, 'شرکت دیس وب');
+    assert.equal(health.data.vendor_url, 'https://disweb.ir');
+    const admin = await f.client().login('admin');
+    const config = await admin.request('/config');
+    assert.equal(config.data.license.issuer, 'شرکت دیس وب');
+    assert.equal(config.data.license.issuer_url, 'https://disweb.ir');
+    const status = await admin.request('/status');
+    assert.equal(status.data.vendor.name, 'شرکت دیس وب');
+    assert.equal(status.data.vendor.url, 'https://disweb.ir');
+    const setup = await f.client().request('/setup');
+    assert.equal(setup.data.vendor.name_latin, 'Dis Web Company');
+  } finally {
+    await f.close();
   }
 });
 
@@ -257,13 +281,20 @@ test('license: the simple wizard creates keys and a verifiable license by itself
     const output = execFileSync('node', [script], {
       cwd: dir,
       encoding: 'utf8',
-      input: 'دبستان آزمایشی جادوگر\n\n2\n\nبله\n',
+      input: 'دبستان آزمایشی جادوگر\n\n2\n\nbale\n',
     });
     const privateFile = path.join(dir, 'license-keys', 'license-private.pem');
     const publicFile = path.join(dir, 'license-keys', 'license-public.pem');
     assert.ok(fs.existsSync(privateFile));
     assert.ok(fs.existsSync(publicFile));
-    assert.match(output, /لایسنس ساخته شد/);
+    // متن ترمینال باید لاتین (fingilish) باشد تا در cmd به هم نریزد.
+    assert.match(output, /LICENSE CREATED/);
+    assert.match(output, /Dis Web Company/);
+    assert.match(output, /https:\/\/disweb\.ir/);
+    assert.ok(
+      !/[\u0600-\u06FF]/.test(output.split('دبستان آزمایشی جادوگر').join('')),
+      'wizard output must stay ASCII-safe',
+    );
     assert.match(output, /دبستان آزمایشی جادوگر/);
     const issued = fs
       .readdirSync(path.join(dir, 'license-keys'))
@@ -271,6 +302,8 @@ test('license: the simple wizard creates keys and a verifiable license by itself
     assert.equal(issued.length, 1);
     const doc = JSON.parse(fs.readFileSync(path.join(dir, 'license-keys', issued[0]), 'utf8'));
     assert.equal(doc.payload.customer, 'دبستان آزمایشی جادوگر');
+    assert.equal(doc.payload.issuer, 'شرکت دیس وب');
+    assert.equal(doc.payload.issuer_url, 'https://disweb.ir');
     assert.equal(verifyLicense(doc, fs.readFileSync(publicFile, 'utf8')).valid, true);
     for (const id of ['finance', 'library', 'reports']) assert.ok(doc.payload.modules.includes(id));
     assert.equal(doc.payload.expires, '');

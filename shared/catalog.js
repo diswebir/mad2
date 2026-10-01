@@ -38,6 +38,7 @@ const gradeOptions = opts(
 export const moduleDefs = [
   {
     id: 'dashboard',
+    name_latin: 'Dashboard',
     name: 'داشبورد',
     description: 'نمای کلی مدرسه، آمار و فعالیت‌های روزانه',
     icon: 'LayoutDashboard',
@@ -45,6 +46,7 @@ export const moduleDefs = [
   },
   {
     id: 'students',
+    name_latin: 'Students',
     name: 'دانش‌آموزان',
     description: 'پرونده، اولیا، سلامت و سوابق دانش‌آموز',
     icon: 'GraduationCap',
@@ -52,6 +54,7 @@ export const moduleDefs = [
   },
   {
     id: 'teachers',
+    name_latin: 'Teachers and staff',
     name: 'معلمان و کارکنان',
     description: 'مدیریت همکاران، کارکنان، حضور و حقوق',
     icon: 'UsersRound',
@@ -59,6 +62,7 @@ export const moduleDefs = [
   },
   {
     id: 'classes',
+    name_latin: 'Classes and rooms',
     name: 'کلاس‌ها و فضاها',
     description: 'کلاس‌بندی، معلم راهنما و مدیریت اتاق‌ها',
     icon: 'School',
@@ -66,6 +70,7 @@ export const moduleDefs = [
   },
   {
     id: 'attendance',
+    name_latin: 'Attendance',
     name: 'حضور و غیاب',
     description: 'ثبت روزانه، تأخیر، غیبت و گزارش کلاس',
     icon: 'CalendarCheck2',
@@ -73,6 +78,7 @@ export const moduleDefs = [
   },
   {
     id: 'education',
+    name_latin: 'Education and grades',
     name: 'آموزش و نمرات',
     description: 'دروس، برنامه هفتگی، تکالیف و ارزشیابی',
     icon: 'BookOpen',
@@ -80,6 +86,7 @@ export const moduleDefs = [
   },
   {
     id: 'tickets',
+    name_latin: 'Messages and tickets',
     name: 'پیام‌ها و تیکت‌ها',
     description: 'ارتباط امن با مدیر و معلمان و پیوست فایل',
     icon: 'MessagesSquare',
@@ -87,6 +94,7 @@ export const moduleDefs = [
   },
   {
     id: 'announcements',
+    name_latin: 'Announcements',
     name: 'اطلاعیه‌ها',
     description: 'اطلاع‌رسانی هدفمند به اعضای مدرسه',
     icon: 'Megaphone',
@@ -94,6 +102,7 @@ export const moduleDefs = [
   },
   {
     id: 'calendar',
+    name_latin: 'Calendar and events',
     name: 'تقویم و رویدادها',
     description: 'جلسات، اردوها، مناسبت‌ها و برنامه‌ها',
     icon: 'CalendarDays',
@@ -101,6 +110,7 @@ export const moduleDefs = [
   },
   {
     id: 'finance',
+    name_latin: 'Finance',
     name: 'امور مالی',
     description: 'شهریه، رسید پرداخت و هزینه‌های مدرسه',
     icon: 'Wallet',
@@ -108,6 +118,7 @@ export const moduleDefs = [
   },
   {
     id: 'meetings',
+    name_latin: 'Parent meetings',
     name: 'جلسات اولیا',
     description: 'زمان‌بندی ملاقات معلم و ولی، رزرو نوبت و پیگیری',
     icon: 'CalendarClock',
@@ -115,6 +126,7 @@ export const moduleDefs = [
   },
   {
     id: 'library',
+    name_latin: 'Library',
     name: 'کتابخانه',
     description: 'کتاب‌ها، موجودی و گردش امانت',
     icon: 'Library',
@@ -122,6 +134,7 @@ export const moduleDefs = [
   },
   {
     id: 'services',
+    name_latin: 'School services',
     name: 'خدمات مدرسه',
     description: 'سرویس، تجهیزات و ثبت ورود مهمانان',
     icon: 'Boxes',
@@ -129,6 +142,7 @@ export const moduleDefs = [
   },
   {
     id: 'reports',
+    name_latin: 'Reports',
     name: 'گزارش‌ها',
     description: 'تحلیل آموزشی، حضور و مالی با خروجی CSV',
     icon: 'ChartNoAxesCombined',
@@ -136,6 +150,7 @@ export const moduleDefs = [
   },
   {
     id: 'notifications',
+    name_latin: 'Notifications',
     name: 'اعلان‌ها',
     description: 'صندوق اعلان و وضعیت خوانده‌شدن',
     icon: 'Bell',
@@ -143,6 +158,7 @@ export const moduleDefs = [
   },
   {
     id: 'profile',
+    name_latin: 'User account',
     name: 'حساب کاربری',
     description: 'ویرایش مشخصات و تغییر امن رمز عبور',
     icon: 'CircleUserRound',
@@ -150,6 +166,7 @@ export const moduleDefs = [
   },
   {
     id: 'settings',
+    name_latin: 'System settings',
     name: 'تنظیمات سامانه',
     description: 'مدرسه، سال تحصیلی، کاربران و پشتیبان',
     icon: 'Settings2',

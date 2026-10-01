@@ -23,6 +23,7 @@ import { libraryRouter } from './modules/library.js';
 import { financeRouter } from './modules/finance.js';
 import { analysisRouter } from './modules/analysis.js';
 import { deliverOutbox } from './messaging.js';
+import { VENDOR } from '../shared/license.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // A school hosted in a sub-directory sets BASE_PATH=/school (cPanel "Application URL").
 // Empty means the domain root. Everything the browser touches moves with it, including
@@ -81,7 +82,14 @@ export function createApp(
     next();
   });
   api.get('/health', (_req, res) =>
-    res.json({ status: 'ok', version: '1.1.0', installed: !!db.setting('installed') }),
+    res.json({
+      status: 'ok',
+      version: '1.1.1',
+      installed: !!db.setting('installed'),
+      vendor: VENDOR.name,
+      vendor_latin: VENDOR.name_latin,
+      vendor_url: VENDOR.url,
+    }),
   );
   api.use(
     rateLimit({

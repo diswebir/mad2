@@ -134,12 +134,16 @@ export default function Auth() {
             <button onClick={() => setHelp(true)}>ارتباط با مدیر مدرسه</button>
           </p>
         </div>
-        <footer className="auth-footer">
-          <span>مدرسه‌یار · نسخه ۱.۱.۰</span>
+        <footer className="auth-footer auth-footer-vendor">
+          <span>مدرسه‌یار · نسخه ۱.۱.۱</span>
           <Link to="/install">
             راهنمای راه‌اندازی
             <Icon name="ArrowUpLeft" size={14} />
           </Link>
+          <a href="https://disweb.ir" target="_blank" rel="noreferrer" className="vendor-credit">
+            <Icon name="Globe" size={13} />
+            ساختهٔ شرکت دیس وب — disweb.ir
+          </a>
         </footer>
       </section>
       <section className="auth-visual">

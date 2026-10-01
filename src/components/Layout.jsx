@@ -391,8 +391,17 @@ export default function Layout() {
               <i />
               سامانه آماده است
             </span>
-            <span>نسخه ۱.۱.۰</span>
+            <span>نسخه ۱.۱.۱</span>
           </div>
+          <a
+            className="sidebar-vendor"
+            href="https://disweb.ir"
+            target="_blank"
+            rel="noreferrer"
+            dir="ltr"
+          >
+            ساختهٔ شرکت دیس وب · disweb.ir
+          </a>
         </div>
       </aside>
       <header className="topbar">

@@ -15,6 +15,15 @@ import { moduleDefs, featureDefs } from './catalog.js';
 //                   فقط ماژول‌های پایه کار می‌کنند و مدیر پیام روشن می‌بیند.
 // ---------------------------------------------------------------------------
 
+// هویت سازنده: در لایسنس، وضعیت سرویس، فوتر برنامه و بستهٔ فروش دیده می‌شود.
+export const VENDOR = {
+  name: 'شرکت دیس وب',
+  name_latin: 'Dis Web Company',
+  url: 'https://disweb.ir',
+  product: 'مدرسه‌یار',
+  product_latin: 'MadresehYar',
+};
+
 export const ALL_MODULES = moduleDefs.map((m) => m.id);
 
 // حداقل ماژول‌هایی که بدون آن‌ها سامانه قابل استفاده نیست. اگر لایسنس نباشد یا
@@ -159,6 +168,8 @@ export const featureEntitled = (entitlement, featureId) => {
 };
 
 export const entitlementSummary = (entitlement) => ({
+  issuer: entitlement.payload?.issuer || VENDOR.name,
+  issuer_url: entitlement.payload?.issuer_url || VENDOR.url,
   mode: entitlement.mode,
   valid: entitlement.valid,
   reason: entitlement.reason,
@@ -259,3 +270,20 @@ export const LICENSE_REASON_LABELS = {
 
 export const licenseReasonLabel = (reason) =>
   LICENSE_REASON_LABELS[reason] || 'وضعیت لایسنس نامشخص است.';
+
+// متن انگلیسی (Latin/Finglish) برای لاگ ترمینال؛ متن فارسی بالا برای رابط کاربری است.
+// ترمینال‌های ویندوز (cmd) متن راست‌به‌چپ را به هم می‌ریزند، پس لاگ‌ها لاتین نوشته می‌شوند.
+export const LICENSE_REASON_LATIN = {
+  OK: 'license is valid.',
+  LICENSE_MODE_OFF: 'license mode is off; all modules are available.',
+  LICENSE_MISSING: 'no license file found on this server; only base modules are on.',
+  LICENSE_MALFORMED: 'the license file could not be read or has a wrong shape.',
+  LICENSE_ALGORITHM: 'the license signature algorithm is not supported.',
+  LICENSE_SIGNATURE: 'the license signature does not match the vendor public key.',
+  LICENSE_EXPIRED: 'this license has expired.',
+  LICENSE_EMPTY: 'the license does not contain any valid module.',
+  PUBLIC_KEY_MISSING: 'the vendor public key is not configured on this server.',
+};
+
+export const licenseReasonLatin = (reason) =>
+  LICENSE_REASON_LATIN[reason] || 'unknown license state.';

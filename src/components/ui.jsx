@@ -103,6 +103,7 @@ import {
   WalletCards,
   ShoppingCart,
   AlertTriangle,
+  Globe,
 } from 'lucide-react';
 const icons = {
   LayoutDashboard,
@@ -205,6 +206,7 @@ const icons = {
   WalletCards,
   ShoppingCart,
   AlertTriangle,
+  Globe,
 };
 export function Icon({ name, size = 20, ...props }) {
   const Component = icons[name] || Circle;

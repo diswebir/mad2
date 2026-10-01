@@ -84,8 +84,8 @@ export default function Modules() {
           <Icon name={config.license.valid ? 'BadgeCheck' : 'AlertTriangle'} size={19} />
           <span>
             {config.license.valid
-              ? `لایسنس ${config.license.customer || 'این مدرسه'} · سریال ${config.license.license_id || '—'} · ${fa(config.license.modules.length)} ماژول مجاز`
-              : 'برای این نصب لایسنس معتبر ثبت نشده است؛ فقط ماژول‌های پایه فعال‌اند. برای خرید ماژول با فروشنده تماس بگیرید.'}
+              ? `لایسنس ${config.license.customer || 'این مدرسه'} · سریال ${config.license.license_id || '—'} · ${fa(config.license.modules.length)} ماژول مجاز · صادرکننده: ${config.license.issuer || 'شرکت دیس وب'}`
+              : 'برای این نصب لایسنس معتبر ثبت نشده است؛ فقط ماژول‌های پایه فعال‌اند. برای خرید ماژول با فروشنده (شرکت دیس وب — disweb.ir) تماس بگیرید.'}
           </span>
         </div>
       )}

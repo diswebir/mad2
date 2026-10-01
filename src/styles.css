@@ -8345,3 +8345,53 @@
   cursor: not-allowed;
   opacity: 0.75;
 }
+
+/* ---------------------------------------------------------------------------
+   هویت سازنده: شرکت دیس وب (https://disweb.ir)
+--------------------------------------------------------------------------- */
+.sidebar-vendor,
+.vendor-credit,
+.install-footer a,
+.vendor-line a {
+  color: inherit;
+  text-decoration: none;
+}
+.sidebar-vendor {
+  display: block;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.35);
+  font-size: 11.5px;
+  opacity: 0.78;
+  transition: opacity 0.15s ease;
+}
+.sidebar-vendor:hover,
+.vendor-credit:hover,
+.install-footer a:hover,
+.vendor-line a:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+.auth-footer-vendor {
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+.vendor-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+.install-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 14px;
+}
+.vendor-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

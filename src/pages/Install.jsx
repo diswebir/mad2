@@ -452,7 +452,10 @@ export default function Install() {
         </section>
       </main>
       <footer className="install-footer">
-        مدرسه‌یار · ساده در نصب، کامل در مدیریت · نسخه ۱.۱.۰
+        <span>مدرسه‌یار · ساده در نصب، کامل در مدیریت · نسخه ۱.۱.۱</span>
+        <a href="https://disweb.ir" target="_blank" rel="noreferrer" dir="ltr">
+          ساختهٔ شرکت دیس وب · disweb.ir
+        </a>
       </footer>
     </div>
   );

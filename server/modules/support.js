@@ -3,7 +3,7 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import { moduleDefs, featureDefs } from '../../shared/catalog.js';
-import { entitlementSummary, licenseReasonLabel } from '../../shared/license.js';
+import { entitlementSummary, licenseReasonLabel, VENDOR } from '../../shared/license.js';
 import { assert, parse, log, pageNumber, positiveId } from '../security.js';
 
 const startedAt = Date.now();
@@ -19,7 +19,7 @@ export function supportRouter(db, security) {
       }
     };
     return {
-      version: '1.1.0',
+      version: '1.1.1',
       node: process.versions.node,
       started_at: new Date(startedAt).toISOString(),
       uptime_seconds: Math.round((Date.now() - startedAt) / 1000),
@@ -37,6 +37,12 @@ export function supportRouter(db, security) {
       memory_mb: Math.round((process.memoryUsage().rss / 1024 / 1024) * 10) / 10,
       capabilities: featureDefs.length,
       modules: moduleDefs.length,
+      vendor: {
+        name: VENDOR.name,
+        name_latin: VENDOR.name_latin,
+        url: VENDOR.url,
+        product: VENDOR.product,
+      },
       license: security.license
         ? {
             ...entitlementSummary(security.license),
