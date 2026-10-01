@@ -20,6 +20,7 @@ const routeFeatures = {
   calendar: 'events.view',
   reports: 'reports.view',
   notifications: 'notifications.view',
+  meetings: 'meeting_slots.view',
   modules: 'settings.modules',
   settings: 'settings.school',
 };
@@ -38,6 +39,8 @@ const Profile = lazy(() => import('./pages/Profile'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Auth = lazy(() => import('./pages/Auth'));
 const Install = lazy(() => import('./pages/Install'));
+const Meetings = lazy(() => import('./pages/Meetings'));
+const PrintCards = lazy(() => import('./pages/PrintCards'));
 class ErrorBoundary extends React.Component {
   state = { error: false };
   static getDerivedStateFromError() {
@@ -113,6 +116,12 @@ function App() {
             <Routes>
               <Route path="/install" element={<Install />} />
               <Route path="/login" element={user ? <Navigate to="/" replace /> : <Auth />} />
+              <Route
+                path="/print/cards/:classId?"
+                element={
+                  user ? <PrintCards /> : <Navigate to="/login" replace state={{ print: true }} />
+                }
+              />
               <Route element={user ? <Layout /> : <Navigate to="/login" replace />}>
                 <Route index element={<Dashboard />} />
                 {[
@@ -148,6 +157,14 @@ function App() {
                   element={
                     <Guarded feature={routeFeatures.tickets}>
                       <Tickets />
+                    </Guarded>
+                  }
+                />
+                <Route
+                  path="meetings"
+                  element={
+                    <Guarded feature={routeFeatures.meetings}>
+                      <Meetings />
                     </Guarded>
                   }
                 />
@@ -211,8 +228,12 @@ function App() {
     </>
   );
 }
+const basename =
+  import.meta.env.BASE_URL && import.meta.env.BASE_URL !== '/'
+    ? import.meta.env.BASE_URL.replace(/\/$/, '')
+    : undefined;
 createRoot(document.getElementById('root')).render(
-  <BrowserRouter>
+  <BrowserRouter basename={basename}>
     <AppProvider>
       <App />
     </AppProvider>

@@ -31,7 +31,7 @@ test('an existing version-one database migrates additively without losing data',
 
   const upgraded = await openDatabase({ dataDir: dir });
   try {
-    assert.equal(upgraded.setting('schema_version'), 2);
+    assert.equal(upgraded.setting('schema_version'), 3);
     assert.equal(upgraded.get('SELECT COUNT(*) n FROM students').n, before.students);
     assert.equal(upgraded.get('SELECT COUNT(*) n FROM grades').n, before.grades);
     assert.equal(

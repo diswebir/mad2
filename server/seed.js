@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { schoolDate, addDateDays } from '../shared/dates.js';
+import { resourceDefs } from '../shared/catalog.js';
 const iso = (offset) => addDateDays(schoolDate(), offset);
 const timestamp = (offset) => `${iso(offset)} 09:00:00`;
 export const demoAccounts = {
@@ -181,6 +182,8 @@ export function seedDemo(db, { school, adminId } = {}) {
         guardian_phone: `0912${1000000 + i}`,
         guardian_relation: i % 5 === 1 ? 'mother' : 'father',
         emergency_phone: `0913${1000000 + i}`,
+        consent_status: i % 7 === 0 ? 'pending' : 'granted',
+        consent_date: i % 7 === 0 ? null : iso(-30),
         address: 'تهران، خیابان شریعتی، محله قلهک',
         blood_type: ['A+', 'B+', 'O+', 'AB+'][i % 4],
         medical_notes: i === 3 ? 'حساسیت به بادام‌زمینی' : null,
@@ -338,6 +341,8 @@ export function seedDemo(db, { school, adminId } = {}) {
         title: 'شهریه نیم‌سال اول',
         student_id: s,
         amount: 15000000,
+        discount: s % 9 === 0 ? 1500000 : 0,
+        discount_reason: s % 9 === 0 ? 'تخفیف فرزند دوم' : null,
         due_date: iso(14),
         term: '۱۴۰۵–۱۴۰۶',
         status: 'unpaid',
@@ -393,6 +398,7 @@ export function seedDemo(db, { school, adminId } = {}) {
         borrow_date: iso(-5),
         due_date: iso(5),
         return_date: i % 4 === 0 ? iso(-1) : null,
+        renewals: i % 3,
         author_id: adminId,
       });
     [
@@ -506,6 +512,131 @@ export function seedDemo(db, { school, adminId } = {}) {
         author_id: adminId,
       }),
     );
+    // Round-three resources: staff, staff attendance/payroll, leave requests,
+    // parent-teacher meeting slots and bookings, library reservations, yearly archive.
+    [
+      ['زهرا', 'طاهری', 'secretary', '09121110001', 'active'],
+      ['محمود', 'قاسمی', 'accountant', '09121110002', 'active'],
+      ['سمیرا', 'رجایی', 'librarian', '09121110003', 'active'],
+      ['نگین', 'کاظمی', 'counselor', '09121110004', 'active'],
+      ['اکبر', 'نوری', 'servant', '09121110005', 'active'],
+      ['حسن', 'بابایی', 'other', '09121110006', 'retired'],
+    ].forEach(([first_name, last_name, position, phone, status], i) =>
+      db.insert('staff', {
+        first_name,
+        last_name,
+        national_id: String(2000000000 + i),
+        position,
+        phone,
+        email: `staff${i + 1}@example.com`,
+        hire_date: '2022-09-23',
+        status,
+        notes: 'کارمند نمونه برای نمایش سامانه',
+        author_id: adminId,
+      }),
+    );
+    for (let s = 1; s <= 4; s++)
+      for (const [offset, status] of [
+        [0, 'present'],
+        [-1, s === 3 ? 'leave' : 'present'],
+        [-2, 'present'],
+      ])
+        db.insert('staff_attendance', {
+          staff_id: s,
+          date: iso(offset),
+          status,
+          note: status === 'leave' ? 'مرخصی استحقاقی' : null,
+          author_id: adminId,
+        });
+    for (let s = 1; s <= 5; s++)
+      db.insert('staff_payroll', {
+        staff_id: s,
+        month: 'مهر ۱۴۰۵',
+        gross: 18000000 + s * 500000,
+        deductions: 1500000,
+        status: s <= 4 ? 'paid' : 'pending',
+        payment_date: s <= 4 ? iso(-1) : null,
+        notes: 'فیش حقوقی نمونه',
+        author_id: adminId,
+      });
+    [
+      [1, 'sick', iso(-2), iso(-1), 'approved', 'به‌دلیل بیماری و استراحت پزشکی'],
+      [4, 'family', iso(2), iso(4), 'pending', null],
+      [7, 'event', iso(6), iso(6), 'approved', 'شرکت در مسابقات استانی'],
+    ].forEach(([student_id, type, from_date, to_date, status, decision_note]) =>
+      db.insert('leaves', {
+        student_id,
+        type,
+        from_date,
+        to_date,
+        reason:
+          status === 'pending'
+            ? 'درخواست خانواده برای سفر کوتاه'
+            : 'توضیح نمونه برای نمایش گردش تأیید',
+        status,
+        decision_note,
+        author_id: adminId,
+      }),
+    );
+    [
+      ['جلسه اولیا و مربیان پایه هفتم', iso(3), '16:00', '18:00', 1, 1, 8, 'سالن اجتماعات'],
+      ['جلسه اولیا و مربیان پایه هشتم', iso(4), '16:00', '18:00', 5, 5, 8, 'کلاس ۱۰۵'],
+    ].forEach(
+      ([title, event_date, start_time, end_time, teacher_id, class_id, capacity, location]) =>
+        db.insert('meeting_slots', {
+          title,
+          event_date,
+          start_time,
+          end_time,
+          teacher_id,
+          class_id,
+          capacity,
+          location,
+          notes: 'لطفاً ۱۰ دقیقه قبل از نوبت در مدرسه حاضر باشید.',
+          author_id: adminId,
+        }),
+    );
+    [
+      [1, 1, 'رضا حسینی', '09121000000', 'booked', 'بررسی وضعیت درسی و انگیزه مطالعه'],
+      [1, 2, 'مریم کریمی', '09121000001', 'attended', 'هماهنگی تمرین‌های تکمیلی ریاضی'],
+      [2, 2, 'فاطمه محمدی', '09121000002', 'booked', 'پیگیری غیبت‌های اخیر'],
+    ].forEach(([slot_id, student_id, parent_name, phone, status, question]) =>
+      db.insert('meeting_bookings', {
+        slot_id,
+        student_id,
+        parent_name,
+        phone,
+        status,
+        question,
+        author_id: adminId,
+      }),
+    );
+    [
+      [1, 3, 'waiting', iso(5), 'برای مطالعه کتاب درسی'],
+      [2, 6, 'ready', iso(2), 'رزرو نسخه دوم کتاب'],
+      [3, 9, 'waiting', null, 'کتاب برای پروژه علمی'],
+    ].forEach(([book_id, student_id, status, needed_by, note]) =>
+      db.insert('reservations', {
+        book_id,
+        student_id,
+        status,
+        needed_by,
+        note,
+        author_id: adminId,
+      }),
+    );
+    for (let s = 1; s <= 10; s++)
+      db.insert('student_years', {
+        student_id: s,
+        term: '۱۴۰۴–۱۴۰۵',
+        class_id: Math.floor((s - 1) / 20) + 1,
+        average: Number((16.5 + (s % 5) * 0.6).toFixed(2)),
+        attendance_rate: 95 + (s % 4),
+        grade_count: 18,
+        status: s === 5 ? 'repeated' : 'promoted',
+        note: 'بایگانی کارنامه سال گذشته',
+        author_id: adminId,
+      });
     const teacherId = db.get("SELECT id FROM users WHERE username='teacher'").id;
     const studentId = db.get("SELECT id FROM users WHERE username='student'").id;
     const ticketSamples = [
@@ -608,6 +739,12 @@ export function seedDemo(db, { school, adminId } = {}) {
       entity: 'school',
       detail: 'داده‌های نمونه برای شروع سریع آماده شد.',
     });
+    // Every nullable column that declares a default is normalised after seeding so
+    // demo data and freshly installed databases agree with the validation rules.
+    for (const [resource, def] of Object.entries(resourceDefs))
+      for (const f of def.fields)
+        if (f.default !== undefined)
+          db.run(`UPDATE "${resource}" SET "${f.name}"=? WHERE "${f.name}" IS NULL`, [f.default]);
     db.setSetting('installed', true);
     db.setSetting('demo_seeded', true);
     return adminId;

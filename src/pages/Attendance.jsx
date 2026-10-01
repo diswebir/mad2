@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp, useApi } from '../context';
+import LeavesPanel from '../components/LeavesPanel';
 import { api, dateFa, download, fa, labelMap, query, today } from '../lib/api';
 import {
   Avatar,
@@ -22,6 +24,8 @@ const statuses = [
 ];
 export default function Attendance() {
   const { user, can, lookups, toast } = useApp();
+  const [params, setParams] = useSearchParams();
+  const tab = params.get('tab') === 'leaves' && can('leaves.view') ? 'leaves' : 'roll';
   const [classId, setClassId] = useState(lookups.classes?.[0]?.id || ''),
     [date, setDate] = useState(today()),
     [draft, setDraft] = useState({}),
@@ -135,7 +139,22 @@ export default function Attendance() {
       />
     );
   return (
-    <div className="attendance-page page-enter">
+    <div className={`attendance-page page-enter ${tab === 'leaves' ? 'show-leaves' : ''}`}>
+      <div className="tabs">
+        <button className={tab === 'roll' ? 'active' : ''} onClick={() => setParams({})}>
+          <Icon name="CalendarCheck2" size={17} />
+          دفتر حضور و غیاب
+        </button>
+        {can('leaves.view') && (
+          <button
+            className={tab === 'leaves' ? 'active' : ''}
+            onClick={() => setParams({ tab: 'leaves' })}
+          >
+            <Icon name="PlaneTakeoff" size={17} />
+            مرخصی و غیبت موجه
+          </button>
+        )}
+      </div>
       <PageHeader
         title="حضور و غیاب"
         description={
@@ -161,236 +180,250 @@ export default function Attendance() {
           </Button>
         )}
       </PageHeader>
-      <div className="attendance-controls panel">
-        <div className="control-field">
-          <label>کلاس آموزشی</label>
-          <select
-            value={classId}
-            aria-label="انتخاب کلاس"
-            onChange={(e) => changeScope(() => setClassId(e.target.value))}
-          >
-            {lookups.classes?.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-            {!lookups.classes?.length && <option value="">کلاسی اختصاص داده نشده</option>}
-          </select>
-        </div>
-        <div className="control-field">
-          <label>تاریخ حضور و غیاب</label>
-          <div className="date-picker">
-            <Icon name="CalendarDays" size={18} />
-            <span>
-              {dateFa(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </span>
-            <input
-              type="date"
-              aria-label="تاریخ حضور و غیاب"
-              value={date}
-              max={today()}
-              onChange={(e) => e.target.value && changeScope(() => setDate(e.target.value))}
-            />
-          </div>
-        </div>
-        <span className="attendance-day-note">
-          <Icon name="Info" size={17} />
-          {changed.length
-            ? 'تغییرات هنوز ذخیره نشده‌اند'
-            : data?.rows.length
-              ? `${fa(data.rows.length)} دانش‌آموز در این کلاس`
-              : 'کلاس مورد نظر را انتخاب کنید'}
-        </span>
-        {editable && can('attendance.bulk') && (
-          <Button
-            variant="soft"
-            icon="CheckCheck"
-            onClick={markAll}
-            disabled={!data?.rows.length || loading}
-          >
-            همه حاضر
-          </Button>
-        )}
-      </div>
-      <div className="attendance-summary">
-        {statuses.map(([key, label, icon, color]) => (
-          <div className="attendance-summary-card" key={key}>
-            <span className={`stat-icon tone-${color}`}>
-              <Icon name={icon} size={22} />
-            </span>
-            <div>
-              <strong>
-                {fa(summary[key])}
-                <small>نفر</small>
-              </strong>
-              <span>{label}</span>
-            </div>
-            <div className={`summary-line line-${color}`} />
-          </div>
-        ))}
-      </div>
-      <section className="panel">
-        <div className="resource-toolbar">
-          <div className="resource-toolbar-title">
-            <h2>فهرست حضور کلاس</h2>
-            <Badge>
-              {lookups.classes?.find((c) => c.id === Number(classId))?.label || 'کلاس شما'}
-            </Badge>
-          </div>
-          <div className="resource-toolbar-controls">
-            <SearchInput value={search} onChange={setSearch} placeholder="جست‌وجوی دانش‌آموز..." />
-            {changed.length > 0 && (
-              <Button
-                variant="ghost"
-                icon="RefreshCw"
-                onClick={() =>
-                  setDraft(
-                    Object.fromEntries(
-                      data.rows.map((r) => [
-                        r.student_id,
-                        { status: r.status || '', note: r.note || '' },
-                      ]),
-                    ),
-                  )
-                }
+      {tab === 'roll' ? (
+        <>
+          <div className="attendance-controls panel">
+            <div className="control-field">
+              <label>کلاس آموزشی</label>
+              <select
+                value={classId}
+                aria-label="انتخاب کلاس"
+                onChange={(e) => changeScope(() => setClassId(e.target.value))}
               >
-                بازگردانی
+                {lookups.classes?.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+                {!lookups.classes?.length && <option value="">کلاسی اختصاص داده نشده</option>}
+              </select>
+            </div>
+            <div className="control-field">
+              <label>تاریخ حضور و غیاب</label>
+              <div className="date-picker">
+                <Icon name="CalendarDays" size={18} />
+                <span>
+                  {dateFa(date, {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </span>
+                <input
+                  type="date"
+                  aria-label="تاریخ حضور و غیاب"
+                  value={date}
+                  max={today()}
+                  onChange={(e) => e.target.value && changeScope(() => setDate(e.target.value))}
+                />
+              </div>
+            </div>
+            <span className="attendance-day-note">
+              <Icon name="Info" size={17} />
+              {changed.length
+                ? 'تغییرات هنوز ذخیره نشده‌اند'
+                : data?.rows.length
+                  ? `${fa(data.rows.length)} دانش‌آموز در این کلاس`
+                  : 'کلاس مورد نظر را انتخاب کنید'}
+            </span>
+            {editable && can('attendance.bulk') && (
+              <Button
+                variant="soft"
+                icon="CheckCheck"
+                onClick={markAll}
+                disabled={!data?.rows.length || loading}
+              >
+                همه حاضر
               </Button>
             )}
           </div>
-        </div>
-        {error ? (
-          <div className="panel-padding">
-            <ErrorBox error={error} onRetry={refresh} />
-          </div>
-        ) : loading ? (
-          <Loading rows={7} />
-        ) : rows.length ? (
-          <div className="table-scroll">
-            <table className="data-table attendance-table">
-              <thead>
-                <tr>
-                  <th>دانش‌آموز</th>
-                  {editable && <th>تماس ولی</th>}
-                  <th>وضعیت حضور</th>
-                  <th>یادداشت</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr
-                    key={r.student_id}
-                    className={
-                      changed.some((c) => c.student_id === r.student_id) ? 'edited-row' : ''
-                    }
-                  >
-                    <td>
-                      <div className="person-cell">
-                        <Avatar
-                          name={`${r.first_name} ${r.last_name}`}
-                          id={r.student_id}
-                          size="sm"
-                        />
-                        <span>
-                          <strong>
-                            {r.first_name} {r.last_name}
-                          </strong>
-                          <small>{r.class_name}</small>
-                        </span>
-                      </div>
-                    </td>
-                    {editable && (
-                      <td dir="ltr" className="ltr-value">
-                        {r.guardian_phone}
-                      </td>
-                    )}
-                    <td>
-                      {editable ? (
-                        <div className="attendance-status-options">
-                          {statuses.map(([status, label, icon, color]) => (
-                            <button
-                              key={status}
-                              type="button"
-                              aria-pressed={draft[r.student_id]?.status === status}
-                              className={`status-option ${draft[r.student_id]?.status === status ? `selected tone-${color}` : ''}`}
-                              onClick={() =>
-                                setDraft((d) => ({
-                                  ...d,
-                                  [r.student_id]: { ...d[r.student_id], status },
-                                }))
-                              }
-                              disabled={busy}
-                            >
-                              <Icon name={icon} size={15} />
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <Badge tone={statusTone(r.status)} dot>
-                          {labelMap[r.status] || 'ثبت‌نشده'}
-                        </Badge>
-                      )}
-                    </td>
-                    <td>
-                      {editable ? (
-                        <input
-                          className="attendance-note-input"
-                          aria-label={`یادداشت ${r.first_name}`}
-                          value={draft[r.student_id]?.note || ''}
-                          placeholder="افزودن یادداشت..."
-                          maxLength={500}
-                          disabled={busy}
-                          onChange={(e) =>
-                            setDraft((d) => ({
-                              ...d,
-                              [r.student_id]: { ...d[r.student_id], note: e.target.value },
-                            }))
-                          }
-                        />
-                      ) : (
-                        r.note || '—'
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <Empty
-            title="دانش‌آموزی برای نمایش نیست"
-            description="کلاس را انتخاب کنید یا دانش‌آموز به آن اختصاص دهید."
-            icon="UsersRound"
-          />
-        )}
-        {editable && data?.rows.length > 0 && (
-          <div className="attendance-table-footer">
-            <span>
-              <Icon name="ShieldCheck" size={16} />
-              غیبت‌ها در اعلان دانش‌آموز و ولی دارای حساب ثبت می‌شوند.
-            </span>
-            <span>{dateFa(date)}</span>
-          </div>
-        )}
-      </section>
-      {history.data && (
-        <section className="panel history-panel">
-          <div className="panel-heading">
-            <h2>تاریخچه حضور من</h2>
-            <Badge tone="purple">{fa(history.data.length)} روز ثبت‌شده</Badge>
-          </div>
-          <div className="history-calendar">
-            {history.data.slice(0, 24).map((a) => (
-              <div className={`history-day tone-${statusTone(a.status)}`} key={a.id}>
-                <span>{dateFa(a.date, { weekday: 'short' })}</span>
-                <strong>{dateFa(a.date, { day: 'numeric', month: 'short' })}</strong>
-                <small>{labelMap[a.status]}</small>
+          <div className="attendance-summary">
+            {statuses.map(([key, label, icon, color]) => (
+              <div className="attendance-summary-card" key={key}>
+                <span className={`stat-icon tone-${color}`}>
+                  <Icon name={icon} size={22} />
+                </span>
+                <div>
+                  <strong>
+                    {fa(summary[key])}
+                    <small>نفر</small>
+                  </strong>
+                  <span>{label}</span>
+                </div>
+                <div className={`summary-line line-${color}`} />
               </div>
             ))}
           </div>
-        </section>
-      )}
+          <section className="panel">
+            <div className="resource-toolbar">
+              <div className="resource-toolbar-title">
+                <h2>فهرست حضور کلاس</h2>
+                <Badge>
+                  {lookups.classes?.find((c) => c.id === Number(classId))?.label || 'کلاس شما'}
+                </Badge>
+              </div>
+              <div className="resource-toolbar-controls">
+                <SearchInput
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="جست‌وجوی دانش‌آموز..."
+                />
+                {changed.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    icon="RefreshCw"
+                    onClick={() =>
+                      setDraft(
+                        Object.fromEntries(
+                          data.rows.map((r) => [
+                            r.student_id,
+                            { status: r.status || '', note: r.note || '' },
+                          ]),
+                        ),
+                      )
+                    }
+                  >
+                    بازگردانی
+                  </Button>
+                )}
+              </div>
+            </div>
+            {error ? (
+              <div className="panel-padding">
+                <ErrorBox error={error} onRetry={refresh} />
+              </div>
+            ) : loading ? (
+              <Loading rows={7} />
+            ) : rows.length ? (
+              <div className="table-scroll">
+                <table className="data-table attendance-table">
+                  <thead>
+                    <tr>
+                      <th>دانش‌آموز</th>
+                      {editable && <th>تماس ولی</th>}
+                      <th>وضعیت حضور</th>
+                      <th>یادداشت</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr
+                        key={r.student_id}
+                        className={
+                          changed.some((c) => c.student_id === r.student_id) ? 'edited-row' : ''
+                        }
+                      >
+                        <td>
+                          <div className="person-cell">
+                            <Avatar
+                              name={`${r.first_name} ${r.last_name}`}
+                              id={r.student_id}
+                              size="sm"
+                            />
+                            <span>
+                              <strong>
+                                {r.first_name} {r.last_name}
+                              </strong>
+                              <small>{r.class_name}</small>
+                            </span>
+                          </div>
+                        </td>
+                        {editable && (
+                          <td dir="ltr" className="ltr-value">
+                            {r.guardian_phone}
+                          </td>
+                        )}
+                        <td>
+                          {editable ? (
+                            <div className="attendance-status-options">
+                              {statuses.map(([status, label, icon, color]) => (
+                                <button
+                                  key={status}
+                                  type="button"
+                                  aria-pressed={draft[r.student_id]?.status === status}
+                                  className={`status-option ${draft[r.student_id]?.status === status ? `selected tone-${color}` : ''}`}
+                                  onClick={() =>
+                                    setDraft((d) => ({
+                                      ...d,
+                                      [r.student_id]: { ...d[r.student_id], status },
+                                    }))
+                                  }
+                                  disabled={busy}
+                                >
+                                  <Icon name={icon} size={15} />
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <Badge tone={statusTone(r.status)} dot>
+                              {labelMap[r.status] || 'ثبت‌نشده'}
+                            </Badge>
+                          )}
+                        </td>
+                        <td>
+                          {editable ? (
+                            <input
+                              className="attendance-note-input"
+                              aria-label={`یادداشت ${r.first_name}`}
+                              value={draft[r.student_id]?.note || ''}
+                              placeholder="افزودن یادداشت..."
+                              maxLength={500}
+                              disabled={busy}
+                              onChange={(e) =>
+                                setDraft((d) => ({
+                                  ...d,
+                                  [r.student_id]: { ...d[r.student_id], note: e.target.value },
+                                }))
+                              }
+                            />
+                          ) : (
+                            r.note || '—'
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <Empty
+                title="دانش‌آموزی برای نمایش نیست"
+                description="کلاس را انتخاب کنید یا دانش‌آموز به آن اختصاص دهید."
+                icon="UsersRound"
+              />
+            )}
+            {editable && data?.rows.length > 0 && (
+              <div className="attendance-table-footer">
+                <span>
+                  <Icon name="ShieldCheck" size={16} />
+                  غیبت‌ها در اعلان دانش‌آموز و ولی دارای حساب ثبت می‌شوند.
+                </span>
+                <span>{dateFa(date)}</span>
+              </div>
+            )}
+          </section>
+          {history.data && (
+            <section className="panel history-panel">
+              <div className="panel-heading">
+                <h2>تاریخچه حضور من</h2>
+                <Badge tone="purple">{fa(history.data.length)} روز ثبت‌شده</Badge>
+              </div>
+              <div className="history-calendar">
+                {history.data.slice(0, 24).map((a) => (
+                  <div className={`history-day tone-${statusTone(a.status)}`} key={a.id}>
+                    <span>{dateFa(a.date, { weekday: 'short' })}</span>
+                    <strong>{dateFa(a.date, { day: 'numeric', month: 'short' })}</strong>
+                    <small>{labelMap[a.status]}</small>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
+      ) : null}
+      {tab === 'leaves' && <LeavesPanel />}
       {pending && (
         <Confirm
           title="تغییرات ذخیره نشده"

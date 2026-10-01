@@ -2,7 +2,7 @@
 
 ## رجیستری واحد
 
-`shared/catalog.js` منبع نام، آیکون، فیلدها، نقش‌های read/write، کلید ماژول و capability است. تعریف منابع به‌صورت whitelist در API استفاده می‌شود. چهار عمل CRUD برای هر منبع، چهار capability مستقل هستند و این تعریف دقیق مبنای عدد ۱۳۴ است.
+`shared/catalog.js` منبع نام، آیکون، فیلدها، نقش‌های read/write، کلید ماژول و capability است. تعریف منابع به‌صورت whitelist در API استفاده می‌شود. چهار عمل CRUD برای هر منبع، چهار capability مستقل هستند و این تعریف دقیق مبنای عدد ۱۸۸ قابلیت در ۱۷ ماژول و ۳۳ نوع پرونده است. ماژول‌ها در `moduleGroups` گروه‌بندی شده‌اند و هر قابلیت می‌تواند `requires` داشته باشد.
 
 ## لایهٔ داده
 
@@ -18,7 +18,8 @@
 - رکوردهای وابسته به دورهٔ آموزشی (نمره، حضور) کلاسِ هنگام ثبت را نگه می‌دارند و پس از جابه‌جایی دانش‌آموز، تاریخچه جابه‌جا نمی‌شود.
 - فایل آپلودی زمینهٔ مصرف (`tickets`, `documents`, `assignments`, `submission`) را در پایگاه‌داده ذخیره می‌کند و فقط در همان گردش‌کار قابل استناد است.
 - اعلان اطلاعیه‌ها با نشانهٔ تراکنشی `notified_at` دقیقاً یک‌بار به هر عضو واجد شرایط تحویل می‌شود؛ Passenger که بین درخواست‌ها می‌خوابد با اولین درخواست بعدی تحویل را انجام می‌دهد.
-- مهاجرت‌ها افزایشی‌اند: ستون‌های تازه (`revision`، `context`، `notified_at`، `class_id` نمرات) روی پایگاه‌دادهٔ موجود اضافه و مقادیر قدیمی بازسازی می‌شوند.
+- مهاجرت‌ها افزایشی‌اند: ستون‌ها و جدول‌های تازه روی پایگاه‌دادهٔ موجود اضافه و مقادیر قدیمی بازسازی می‌شوند؛ `schema_version` از ۱ به ۳ رسیده است. نسخهٔ ۳ جدول‌های `outbox` (صف پیامک/ایمیل) و `error_reports` (گزارش خطای کاربر با کد پیگیری)، رضایت ولی در `students`، تخفیف/قسط/جریمه در `invoices`، کارکنان و حضور/حقوق کارکنان و `student_years` (بایگانی سال) را اضافه می‌کند.
+- بازیابی پشتیبان (`POST /settings/backup/restore`) پیش از جایگزینی، نسخهٔ `pre-restore-*.sqlite` می‌سازد، نشست‌ها را باطل می‌کند و کل بانک را در حافظهٔ SQL.js از نو بارگذاری می‌کند؛ فقط مدیر با تأیید رمز.
 
 ## دسترسی
 
@@ -37,14 +38,25 @@
 
 - `/api/auth/*`: ورود، نشست، خروج، پروفایل و رمز.
 - `/api/setup`: آمادگی عمومی و نصب توکن‌دار یک‌باره.
-- `/api/entities/:resource`: CRUD / جست‌وجو / فیلتر / صفحه‌بندی منابع ثبت‌شده.
+- `/api/entities/:resource`: CRUD / جست‌وجو / فیلتر / صفحه‌بندی منابع ثبت‌شده؛ `?sort=&dir=` و `?format=xlsx|csv`.
+- `/api/entities/:resource/bulk`: عملیات گروهی روی ردیف‌های انتخاب‌شده با گزارش موفق/ناموفق.
 - `/api/attendance`: ثبت دسته‌ای و گزارش روز؛ history مستقل.
+- `/api/leaves`: درخواست مرخصی/غیبت موجه با گردش تصمیم.
+- `/api/meetings/{slots,book,bookings}`: بازه‌های ملاقات و نوبت‌گیری اولیا.
 - `/api/tickets`: inbox، پیام و وضعیت خصوصی.
-- `/api/assignments/:id`: تحویل و ارزیابی.
+- `/api/assignments/:id`: تحویل و ارزیابی؛ `/api/assignments/grades/bulk` ثبت گروهی نمره.
+- `/api/library/{overdue,settings,reservations,report}` و `/api/library/loans/:id/{renew,return,fine}`.
+- `/api/finance/{settings,debtors,installments}` و `/api/finance/invoices/:id/late-fee`.
+- `/api/analysis/*`: `report-card/:studentId`، `report-cards`، `trend/:studentId`، `ministerial`، `promotion/preview|apply`، `student-years`، `my-day`.
 - `/api/files`: بارگذاری contextدار و دریافت مجاز.
-- `/api/settings/*`: مدرسه، ماژول، capability، حساب، reset، audit و backup.
+- `/api/settings/*`: مدرسه، ماژول، capability، حساب، reset، audit، backup، `backup/restore`، `messaging` و تست ارسال.
+- `/api/status`, `/api/support/report`: وضعیت سرویس و گزارش خطای کاربر با کد پیگیری (مسیر گزارش عمومی است).
 - `/api/config`, `/api/lookups`: پیکربندی و برچسب‌های حداقلی انتخاب‌گرها.
 - `/api/dashboard`, `/api/reports`, `/api/calendar`, `/api/search`, `/api/notifications`: نماهای مجاز و محاسبه‌شده.
+
+## نصب در ساب‌دایرکتوری
+
+`BASE_PATH` در سرور (`.env`) و در زمان build (Vite) خوانده می‌شود. `normalizeBasePath` ورودی‌هایی مثل `''`، `'/'`، `school/` و `//a//b//` را به مسیر پایهٔ یکسان تبدیل می‌کند. مسیر `‎<base>/api` سرو می‌شود، `/` به `‎<base>/` ریدایرکت می‌شود، کوکی نشست با `path=<base>` تنظیم می‌گردد و درخواست API بیرون از مسیر پایه ۴۰۴ می‌گیرد. این منطق در `vite.config.js` و `server/app.js` مشترک است و `tests/deploy.test.js` آن را تضمین می‌کند.
 
 ## افزودن منبع یا ماژول
 
@@ -59,6 +71,7 @@
 ## قابلیت‌های وابسته
 
 - هر قابلیت افزون بر نقش، می‌تواند `requires` داشته باشد؛ مثلاً `attendance.export` بدون `attendance.view` و `students.profile` بدون `students.view` در دسترس نیست. همین قواعد در سرور و رابط یکسان اعمال می‌شوند.
+- پل پیامک/ایمیل هم قابلیت مستقل است (`settings.messaging`) و ارسال‌ها در صف `outbox` با وضعیت، تعداد تلاش و تلاش دوباره ذخیره می‌شوند؛ خاموش‌بودن قابلیت، ارسال و صف را در API هم می‌بندد.
 - فعال/غیرفعال‌بودن حساب کاربری و وضعیت پروندهٔ مرتبط دو دروازهٔ مستقل‌اند: حساب دستی‌غیرفعال با ویرایش پرونده روشن نمی‌شود و حساب بدون پروندهٔ فعال وارد نمی‌شود.
 
 ## مسیر رشد

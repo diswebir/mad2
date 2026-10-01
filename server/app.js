@@ -16,13 +16,37 @@ import { filesRouter } from './modules/files.js';
 import { settingsRouter } from './modules/settings.js';
 import { overviewRouter } from './modules/overview.js';
 import { installationRouter } from './modules/installation.js';
+import { supportRouter } from './modules/support.js';
+import { leavesRouter } from './modules/leaves.js';
+import { meetingsRouter } from './modules/meetings.js';
+import { libraryRouter } from './modules/library.js';
+import { financeRouter } from './modules/finance.js';
+import { analysisRouter } from './modules/analysis.js';
+import { deliverOutbox } from './messaging.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// A school hosted in a sub-directory sets BASE_PATH=/school (cPanel "Application URL").
+// Empty means the domain root. Everything the browser touches moves with it, including
+// API routes, the session cookie path and the SPA fallback.
+export const normalizeBasePath = (value = '') => {
+  const raw = String(value || '').trim();
+  if (!raw || raw === '/') return '';
+  const trimmed = raw.replace(/^\/+|\/+$/g, '').replace(/\/{2,}/g, '/');
+  return trimmed ? `/${trimmed}` : '';
+};
 export function createApp(
   db,
-  { demo = false, installToken = '', staticDir = path.join(root, 'dist') } = {},
+  {
+    demo = false,
+    installToken = '',
+    staticDir = path.join(root, 'dist'),
+    basePath = process.env.BASE_PATH,
+  } = {},
 ) {
   const app = express(),
-    security = makeSecurity(db);
+    security = makeSecurity(db, { basePath }),
+    base = normalizeBasePath(basePath),
+    mountedBase = base || '/';
+  security.basePath = base;
   app.disable('x-powered-by');
   const trust = Number(process.env.TRUST_PROXY ?? 1);
   app.set('trust proxy', Number.isInteger(trust) && trust >= 0 && trust <= 5 ? trust : 1);
@@ -50,15 +74,15 @@ export function createApp(
   app.use(compression());
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
-  app.use('/api', (req, res, next) => {
+  const api = express.Router();
+  api.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     next();
   });
-  app.get('/api/health', (_req, res) =>
-    res.json({ status: 'ok', version: '1.0.0', installed: !!db.setting('installed') }),
+  api.get('/health', (_req, res) =>
+    res.json({ status: 'ok', version: '1.1.0', installed: !!db.setting('installed') }),
   );
-  app.use(
-    '/api',
+  api.use(
     rateLimit({
       windowMs: 60000,
       limit: 400,
@@ -69,18 +93,43 @@ export function createApp(
     security.loadSession,
     security.csrf,
   );
-  app.use('/api/setup', installationRouter(db, security, { installToken, demo }));
-  app.use('/api/auth', authRouter(db, security, demo));
-  app.use('/api/entities', resourceRouter(db, security));
-  app.use('/api/attendance', attendanceRouter(db, security));
-  app.use('/api/tickets', ticketsRouter(db, security));
-  app.use('/api/assignments', educationRouter(db, security));
-  app.use('/api/files', filesRouter(db, security));
-  app.use('/api/settings', settingsRouter(db, security));
-  app.use('/api', overviewRouter(db, security));
-  app.use('/api', (_req, res) => res.status(404).json({ error: 'مسیر API پیدا نشد.' }));
-  if (fs.existsSync(path.join(staticDir, 'index.html'))) {
+  api.use('/setup', installationRouter(db, security, { installToken, demo }));
+  api.use('/auth', authRouter(db, security, demo));
+  api.use('/entities', resourceRouter(db, security));
+  api.use('/attendance', attendanceRouter(db, security));
+  api.use('/tickets', ticketsRouter(db, security));
+  api.use('/assignments', educationRouter(db, security));
+  api.use('/files', filesRouter(db, security));
+  api.use('/settings', settingsRouter(db, security));
+  api.use('/leaves', leavesRouter(db, security));
+  api.use('/meetings', meetingsRouter(db, security));
+  api.use('/library', libraryRouter(db, security));
+  api.use('/finance', financeRouter(db, security));
+  api.use('/analysis', analysisRouter(db, security));
+  // Support is mounted before the overview router because the latter starts with a
+  // blanket auth guard; the public fault-report endpoint must win the route match.
+  api.use('/', supportRouter(db, security));
+  api.use('/', overviewRouter(db, security));
+  // Passenger may sleep between requests: queued SMS/email is flushed by the next request,
+  // never inside the request that produced it.
+  api.use((req, _res, next) => {
+    if (req.method === 'GET') deliverOutbox(db, security).catch(() => {});
+    next();
+  });
+  api.use((_req, res) => res.status(404).json({ error: 'مسیر API پیدا نشد.' }));
+  app.use(`${mountedBase.replace(/\/$/, '')}/api`.replace('//api', '/api'), api);
+  if (base) {
+    // Registered before the SPA fallback so the bare mount point always ends with a slash;
+    // otherwise relative asset URLs inside index.html would resolve one directory up.
+    app.get('/', (_req, res) => res.redirect(302, `${base}/`));
+    app.get(base, (req, res, next) =>
+      req.originalUrl.split('?')[0] === base ? res.redirect(301, `${base}/`) : next(),
+    );
+  }
+  const serveStatic = fs.existsSync(path.join(staticDir, 'index.html'));
+  if (serveStatic) {
     app.use(
+      mountedBase,
       express.static(staticDir, {
         maxAge: '1h',
         dotfiles: 'deny',
@@ -91,9 +140,11 @@ export function createApp(
         },
       }),
     );
-    app.get('/{*path}', (_req, res) => res.sendFile('index.html', { root: staticDir }));
+    app.get(base ? `${base}/{*path}` : '/{*path}', (_req, res) =>
+      res.sendFile('index.html', { root: staticDir }),
+    );
   } else {
-    app.get('/', (_req, res) =>
+    app.get(base || '/', (_req, res) =>
       res
         .type('text')
         .send('مدرسه‌یار — رابط کاربری را با npm run build بسازید، یا npm run dev را اجرا کنید.'),

@@ -19,6 +19,12 @@ import {
   SearchInput,
   Switch,
 } from '../components/ui';
+import {
+  ErrorReportsPanel,
+  MessagingPanel,
+  RestorePanel,
+  StatusPanel,
+} from '../components/SystemPanels';
 import Resources from './Resources';
 function SchoolSettings() {
   const { config, refreshConfig, toast } = useApp();
@@ -570,6 +576,10 @@ export default function Settings() {
     ...(can('terms.view') ? [['terms', 'سال تحصیلی', 'CalendarRange']] : []),
     ...(can('settings.audit') ? [['audit', 'رویدادهای سامانه', 'ClipboardList']] : []),
     ...(can('settings.backup') ? [['backup', 'پشتیبان‌گیری', 'Database']] : []),
+    ...(can('settings.restore') ? [['restore', 'بازگردانی پشتیبان', 'RefreshCw']] : []),
+    ...(can('settings.messaging') ? [['messaging', 'پیامک و ایمیل', 'Send']] : []),
+    ...(can('settings.status') ? [['status', 'وضعیت سرویس', 'Server']] : []),
+    ...(can('settings.support') ? [['errors', 'گزارش خطاها', 'CircleHelp']] : []),
   ];
   const tab = tabs.some(([t]) => t === params.get('tab')) ? params.get('tab') : tabs[0]?.[0];
   return (
@@ -605,6 +615,14 @@ export default function Settings() {
         <Audit />
       ) : tab === 'backup' ? (
         <Backup />
+      ) : tab === 'restore' ? (
+        <RestorePanel />
+      ) : tab === 'messaging' ? (
+        <MessagingPanel />
+      ) : tab === 'status' ? (
+        <StatusPanel />
+      ) : tab === 'errors' ? (
+        <ErrorReportsPanel />
       ) : (
         <div className="panel">
           <Empty

@@ -17,6 +17,98 @@ import {
   statusTone,
 } from '../components/ui';
 import AttendanceChart from '../components/AttendanceChart';
+function MyDay() {
+  const { can } = useApp();
+  const { data, loading, error, refresh } = useApi(
+    can('dashboard.view') ? '/analysis/my-day' : null,
+  );
+  if (error) return <ErrorBox error={error} onRetry={refresh} />;
+  if (loading && !data) return <Loading rows={2} />;
+  if (!data) return null;
+  const missing = data.classes.filter((row) => row.missing);
+  const tasks = data.admin || data.teacher;
+  return (
+    <section className="panel my-day-panel">
+      <div className="panel-heading">
+        <div>
+          <h2>کارهای امروز من</h2>
+          <p className="muted small-text">{dateFa(data.date)} · نگاهی سریع به کارهای باقی‌مانده</p>
+        </div>
+        <Badge tone={missing.length ? 'orange' : 'green'} dot>
+          {missing.length ? `${fa(missing.length)} کلاس بدون ثبت حضور` : 'حضور همه کلاس‌ها ثبت شده'}
+        </Badge>
+      </div>
+      <div className="my-day-grid">
+        {tasks && (
+          <>
+            {typeof tasks.missing_attendance === 'number' && (
+              <div className={`my-day-card ${tasks.missing_attendance ? 'warn' : ''}`}>
+                <Icon name="CalendarCheck2" size={22} />
+                <strong>{fa(tasks.missing_attendance)}</strong>
+                <span>کلاس بدون ثبت حضور امروز</span>
+              </div>
+            )}
+            {typeof tasks.pending_leaves === 'number' && (
+              <div className={`my-day-card ${tasks.pending_leaves ? 'warn' : ''}`}>
+                <Icon name="PlaneTakeoff" size={22} />
+                <strong>{fa(tasks.pending_leaves)}</strong>
+                <span>درخواست مرخصی در انتظار تأیید</span>
+              </div>
+            )}
+            {typeof tasks.unpaid_invoices === 'number' && (
+              <div className={`my-day-card ${tasks.unpaid_invoices ? 'warn' : ''}`}>
+                <Icon name="Wallet" size={22} />
+                <strong>{fa(tasks.unpaid_invoices)}</strong>
+                <span>صورتحساب سررسیدگذشته</span>
+              </div>
+            )}
+            {typeof tasks.open_tickets === 'number' && (
+              <div className="my-day-card">
+                <Icon name="MessagesSquare" size={22} />
+                <strong>{fa(tasks.open_tickets)}</strong>
+                <span>تیکت باز</span>
+              </div>
+            )}
+            {typeof tasks.new_error_reports === 'number' && (
+              <div className={`my-day-card ${tasks.new_error_reports ? 'warn' : ''}`}>
+                <Icon name="CircleHelp" size={22} />
+                <strong>{fa(tasks.new_error_reports)}</strong>
+                <span>گزارش خطای جدید</span>
+              </div>
+            )}
+            {typeof tasks.unreviewed === 'number' && (
+              <div className={`my-day-card ${tasks.unreviewed ? 'warn' : ''}`}>
+                <Icon name="ClipboardList" size={22} />
+                <strong>{fa(tasks.unreviewed)}</strong>
+                <span>تمرین تصحیح‌نشده</span>
+              </div>
+            )}
+          </>
+        )}
+        {typeof data.upcoming_meetings === 'number' && (
+          <div className="my-day-card">
+            <Icon name="CalendarClock" size={22} />
+            <strong>{fa(data.upcoming_meetings)}</strong>
+            <span>بازه ملاقات پیش‌رو</span>
+          </div>
+        )}
+      </div>
+      {missing.length > 0 && (
+        <div className="my-day-list">
+          <strong>کلاس‌هایی که امروز حضور ثبت نکرده‌اند:</strong>
+          <div className="chip-row">
+            {missing.map((row) => (
+              <Link className="chip chip-orange" key={row.class_id} to="/attendance">
+                {row.name} · {fa(row.students)} دانش‌آموز
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function Dashboard() {
   const { user, config, can, toast } = useApp(),
     navigate = useNavigate();
@@ -116,6 +208,7 @@ export default function Dashboard() {
         <SchoolIllustration className="welcome-illustration" />
         <div className="welcome-decoration" />
       </section>
+      <MyDay />
       {loading && !data ? (
         <Loading rows={4} />
       ) : (

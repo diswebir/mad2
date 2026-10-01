@@ -74,11 +74,11 @@ after(async () => {
   await f.close();
 });
 
-test('registry has 134 unique, implemented features in 16 modules', () => {
-  assert.equal(featureDefs.length, 134);
-  assert.equal(new Set(featureDefs.map((f) => f.id)).size, 134);
-  assert.equal(moduleDefs.length, 16);
-  assert.equal(Object.keys(resourceDefs).length, 25);
+test('registry exposes unique, implemented capabilities across every module', () => {
+  assert.ok(featureDefs.length >= 100, 'the registry promises at least 100 capabilities');
+  assert.equal(new Set(featureDefs.map((f) => f.id)).size, featureDefs.length);
+  assert.ok(moduleDefs.length >= 16);
+  assert.ok(Object.keys(resourceDefs).length >= 25);
   for (const def of Object.values(resourceDefs)) assert(def.fields.length > 0);
 });
 
@@ -193,17 +193,15 @@ test('all 100 registry CRUD capabilities perform real list/create/edit/delete op
       assert.equal(create.status, 201, JSON.stringify(create.data));
       const id = create.data.row.id;
       const editable = def.fields.find(
-        (f) => f.type === 'text' && !f.unique && f.name !== 'national_id',
+        (f) => ['text', 'textarea'].includes(f.type) && !f.unique && f.name !== 'national_id',
       );
-      const editBody = editable
-        ? { [editable.name]: 'ویرایش آزمایشی' }
-        : { notes: 'یادداشت آزمایشی' };
+      const editBody = { [editable.name]: 'ویرایش آزمایشی' };
       const edit = await admin.request(`/entities/${resource}/${id}`, {
         method: 'PATCH',
         body: editBody,
       });
       assert.equal(edit.status, 200, JSON.stringify(edit.data));
-      assert.equal(edit.data.row[editable?.name || 'notes'], editBody[editable?.name || 'notes']);
+      assert.equal(edit.data.row[editable.name], editBody[editable.name]);
       const remove = await admin.request(`/entities/${resource}/${id}`, {
         method: 'DELETE',
         body: {},

@@ -3,6 +3,7 @@ import multer from 'multer';
 import { parse as parseCSV } from 'csv-parse/sync';
 import { z } from 'zod';
 import { deliverAnnouncements } from './announcements.js';
+import { buildXlsx, sheetsFromRows } from '../shared/xlsx.js';
 import { resourceDefs, resourceLabel } from '../shared/catalog.js';
 import {
   HttpError,
@@ -281,7 +282,21 @@ export function businessRules(db, resource, row, id = 0) {
     const paid = db.get('SELECT COALESCE(SUM(amount),0) n FROM payments WHERE invoice_id=?', [
       id,
     ]).n;
-    assert(row.amount >= paid, 422, 'مبلغ صورتحساب نمی‌تواند کمتر از پرداخت‌های ثبت‌شده باشد.');
+    assert(
+      Number(row.discount || 0) <= Number(row.amount || 0),
+      422,
+      'تخفیف نمی‌تواند از مبلغ صورتحساب بیشتر باشد.',
+    );
+    assert(
+      Number(row.discount || 0) > 0 || !row.discount_reason,
+      422,
+      'برای تخفیف، مبلغ تخفیف را هم وارد کنید.',
+    );
+    assert(
+      payable(row) >= paid,
+      422,
+      'مبلغ قابل پرداخت صورتحساب نمی‌تواند کمتر از پرداخت‌های ثبت‌شده باشد.',
+    );
   }
   if (resource === 'payments') {
     if (old)
@@ -290,12 +305,12 @@ export function businessRules(db, resource, row, id = 0) {
         409,
         'رسید را نمی‌توان به صورتحساب دیگر منتقل کرد؛ ابتدا اصلاح را با حذف و ثبت رسید جدید انجام دهید.',
       );
-    const invoice = db.get('SELECT amount FROM invoices WHERE id=?', [row.invoice_id]);
+    const invoice = db.get('SELECT * FROM invoices WHERE id=?', [row.invoice_id]);
     const paid = db.get(
       'SELECT COALESCE(SUM(amount),0) n FROM payments WHERE invoice_id=? AND id!=?',
       [row.invoice_id, id],
     ).n;
-    assert(row.amount <= invoice.amount - paid, 422, 'پرداخت از مانده صورتحساب بیشتر است.');
+    assert(row.amount <= payable(invoice) - paid, 422, 'پرداخت از مانده صورتحساب بیشتر است.');
   }
   if (resource === 'loans') {
     assert(
@@ -312,6 +327,21 @@ export function businessRules(db, resource, row, id = 0) {
     assert(row.due_date >= row.borrow_date, 422, 'مهلت بازگشت باید بعد از تاریخ امانت باشد.');
     if (row.return_date)
       assert(row.return_date >= row.borrow_date, 422, 'بازگشت قبل از امانت امکان‌پذیر نیست.');
+    if (row.return_date && (!old || !old.return_date)) {
+      // First time the copy comes back: compute the fine with the configured daily rate.
+      const rate = Number(db.setting('library', {}).daily_fine || 0);
+      const lateDays = Math.max(
+        0,
+        Math.round((Date.parse(row.return_date) - Date.parse(row.due_date)) / 86400000),
+      );
+      row.fine = lateDays > 0 ? lateDays * rate : 0;
+      row.fine_status =
+        lateDays > 0 && rate > 0
+          ? row.fine_status === 'paid'
+            ? 'paid'
+            : 'due'
+          : row.fine_status || 'none';
+    }
     if (!row.return_date) {
       const copies = db.get('SELECT copies FROM books WHERE id=?', [row.book_id]).copies;
       const active = db.get(
@@ -345,14 +375,25 @@ const classFamilyIds = (db, classId) => {
   return [...ids];
 };
 const faNumber = (value) => Number(value || 0).toLocaleString('fa-IR');
+const payable = (invoice) =>
+  Math.max(
+    0,
+    Number(invoice.amount || 0) - Number(invoice.discount || 0) + Number(invoice.late_fee || 0),
+  );
 const recalcInvoice = (db, id) => {
   if (!id) return;
   const paid = db.get('SELECT COALESCE(SUM(amount),0) n FROM payments WHERE invoice_id=?', [id]).n;
-  const invoice = db.get('SELECT amount FROM invoices WHERE id=?', [id]);
+  const invoice = db.get('SELECT * FROM invoices WHERE id=?', [id]);
   if (invoice)
     db.run(
-      "UPDATE invoices SET paid_amount=?, status=?,revision=revision+1,updated_at=datetime('now') WHERE id=?",
-      [paid, paid >= invoice.amount ? 'paid' : paid > 0 ? 'partial' : 'unpaid', id],
+      "UPDATE invoices SET paid_amount=?,net_amount=?,remaining=?,status=?,revision=revision+1,updated_at=datetime('now') WHERE id=?",
+      [
+        paid,
+        payable(invoice),
+        Math.max(0, payable(invoice) - paid),
+        paid >= payable(invoice) ? 'paid' : paid > 0 ? 'partial' : 'unpaid',
+        id,
+      ],
     );
 };
 
@@ -375,6 +416,14 @@ export function resourceRouter(db, security) {
       'FEATURE_DISABLED',
     );
     return def;
+  };
+  const sortClause = (req, def) => {
+    const allowed = new Set(['id', ...def.fields.map((f) => f.name)]);
+    const column = String(req.query.sort || '');
+    if (!column) return 'r.id DESC';
+    assert(allowed.has(column), 422, 'ستون مرتب‌سازی معتبر نیست.');
+    const dir = String(req.query.dir || 'asc').toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+    return `r."${column}" ${dir}, r.id DESC`;
   };
   const filters = (req) => {
     const resource = req.params.resource,
@@ -413,7 +462,7 @@ export function resourceRouter(db, security) {
     );
     const where = filters(req);
     const rows = db.all(
-      `SELECT r.* FROM "${req.params.resource}" r WHERE ${where.sql} ORDER BY r.id DESC LIMIT 10000`,
+      `SELECT r.* FROM "${req.params.resource}" r WHERE ${where.sql} ORDER BY ${sortClause(req, def)} LIMIT 10000`,
       where.params,
     );
     const cols = [...def.fields, ...(def.computed || [])];
@@ -434,16 +483,29 @@ export function resourceRouter(db, security) {
         }),
       ),
     );
+    const columnDefs = cols.map((f) => ({ key: f.name, label: f.label }));
+    if (String(req.query.format || '').toLowerCase() === 'xlsx') {
+      assert(
+        security.enabled('exports.xlsx'),
+        403,
+        'خروجی اکسل توسط مدیر غیرفعال شده است.',
+        'FEATURE_DISABLED',
+      );
+      const workbook = buildXlsx(
+        sheetsFromRows(columnDefs, output, resourceDefs[req.params.resource].title),
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${req.params.resource}-${today()}.xlsx"`,
+      );
+      res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      return res.send(workbook);
+    }
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="${req.params.resource}-${today()}.csv"`,
     );
-    res.type('text/csv; charset=utf-8').send(
-      csv(
-        output,
-        cols.map((f) => ({ key: f.name, label: f.label })),
-      ),
-    );
+    return res.type('text/csv; charset=utf-8').send(csv(output, columnDefs));
   });
   const importUpload = multer({
     storage: multer.memoryStorage(),
@@ -502,7 +564,7 @@ export function resourceRouter(db, security) {
     },
   );
   router.get('/:resource', (req, res) => {
-    check(req, 'view');
+    const def = check(req, 'view');
     const where = filters(req);
     const page = pageNumber(req.query.page);
     const limit = pageNumber(req.query.limit, 10, 100);
@@ -510,8 +572,9 @@ export function resourceRouter(db, security) {
       `SELECT COUNT(*) n FROM "${req.params.resource}" r WHERE ${where.sql}`,
       where.params,
     ).n;
+    const order = sortClause(req, def);
     const rows = db.all(
-      `SELECT r.* FROM "${req.params.resource}" r WHERE ${where.sql} ORDER BY r.id DESC LIMIT ? OFFSET ?`,
+      `SELECT r.* FROM "${req.params.resource}" r WHERE ${where.sql} ORDER BY ${order} LIMIT ? OFFSET ?`,
       [...where.params, limit, (page - 1) * limit],
     );
     if (req.params.resource === 'classes')
@@ -523,6 +586,90 @@ export function resourceRouter(db, security) {
     for (const row of rows)
       row.permissions = recordPermissions(db, security, req.params.resource, row, req.user);
     res.json({ rows, total, page, limit, pages: Math.ceil(total / limit) });
+  });
+  // Bulk operations keep per-record scope, revision and business checks, so a checkbox in
+  // the UI can never do something a single-row request could not.
+  router.post('/:resource/bulk', (req, res) => {
+    const def = check(req, 'delete');
+    const resource = req.params.resource;
+    const data = z
+      .object({
+        action: z.enum(['delete', 'update']),
+        ids: z.array(z.number().int().positive()).min(1).max(200),
+        patch: z.record(z.string(), z.unknown()).optional().default({}),
+        revision: z.number().int().positive().optional(),
+      })
+      .parse(req.body || {});
+    if (data.action === 'update')
+      assert(
+        def.write.includes(req.user.role) && security.enabled(`${resource}.edit`),
+        403,
+        'ویرایش گروهی برای نقش شما مجاز نیست.',
+      );
+    const results = { ok: [], failed: [] };
+    for (const id of [...new Set(data.ids)]) {
+      try {
+        const row = db.get(`SELECT * FROM "${resource}" WHERE id=?`, [id]);
+        assert(row, 404, 'رکورد پیدا نشد.');
+        assertScope(db, resource, row, req.user);
+        assertScope(db, resource, row, req.user, true);
+        if (data.action === 'update') {
+          const patch = validateRecord(db, resource, data.patch, { update: true });
+          assert(Object.keys(patch).length, 422, 'تغییری برای اعمال وجود ندارد.');
+          assertRevision(row, data.revision);
+          const combined = { ...row, ...patch };
+          assertScope(db, resource, combined, req.user, true);
+          assertFileContext(db, combined.file_id, req.user, resource, row.file_id);
+          businessRules(db, resource, combined, row.id);
+          db.transaction(() => {
+            db.run(
+              `UPDATE "${resource}" SET ${Object.keys(patch)
+                .map((key) => `"${key}"=?`)
+                .join(',')},updated_at=datetime('now'),revision=revision+1 WHERE id=?`,
+              [...Object.values(patch), id],
+            );
+            log(db, req.user, `${resource}.bulk_edit`, resource, id, { count: 1 });
+          });
+        } else {
+          assertRevision(row, data.revision);
+          if (resource === 'students')
+            assert(
+              !db.get(
+                'SELECT id FROM attendance WHERE student_id=? UNION SELECT id FROM submissions WHERE student_id=? LIMIT 1',
+                [row.id, row.id],
+              ),
+              409,
+              'پرونده دارای سابقه قابل حذف نیست؛ آن را غیرفعال کنید.',
+            );
+          db.transaction(() => {
+            const linked = ['students', 'teachers'].includes(resource)
+              ? db.all(
+                  `SELECT id FROM users WHERE ${resource === 'students' ? 'student_id' : 'teacher_id'}=?`,
+                  [row.id],
+                )
+              : [];
+            db.run(`DELETE FROM "${resource}" WHERE id=?`, [row.id]);
+            for (const account of linked) {
+              db.run('UPDATE users SET active=0,student_id=NULL,teacher_id=NULL WHERE id=?', [
+                account.id,
+              ]);
+              db.run('DELETE FROM sessions WHERE user_id=?', [account.id]);
+            }
+            if (resource === 'payments') recalcInvoice(db, row.invoice_id);
+            log(db, req.user, `${resource}.bulk_delete`, resource, id);
+          });
+        }
+        results.ok.push(id);
+      } catch (error) {
+        const parts = String(error.message || '').split('ردیف ');
+        results.failed.push({ id, error: parts.length > 1 ? parts[1] : error.message });
+      }
+    }
+    res.json({
+      ...results,
+      requested: data.ids.length,
+      message: `${results.ok.length} رکورد انجام شد${results.failed.length ? ` و ${results.failed.length} مورد رد شد` : ''}.`,
+    });
   });
   router.get('/:resource/:id', (req, res) => {
     check(req, 'view');

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { moduleDefs, moduleGroups, resourceDefs, resourceLabel } from '../../shared/catalog';
 import { useApp, useApi } from '../context';
 import {
+  absoluteUrl,
   api,
   dateFa,
   describeError,
@@ -14,6 +15,9 @@ import {
   today,
   upload,
 } from '../lib/api';
+import { BulkEdit, BulkGrades } from '../components/BulkGrades';
+import { InstallmentsButton, LateFeeButton, PrintInvoiceButton } from '../components/InvoiceTools';
+import { LibraryTools, LoanDetail } from '../components/LibraryTools';
 import {
   Avatar,
   Badge,
@@ -24,6 +28,7 @@ import {
   ErrorBox,
   Icon,
   IconButton,
+  JalaliDateField,
   Loading,
   Modal,
   PageHeader,
@@ -53,7 +58,12 @@ export function FieldValue({ field, value }) {
     return <span dir="ltr">{String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d])}</span>;
   if (field.type === 'file')
     return (
-      <a className="file-link" href={`/api/files/${value}`} target="_blank" rel="noreferrer">
+      <a
+        className="file-link"
+        href={absoluteUrl(`/api/files/${value}`)}
+        target="_blank"
+        rel="noreferrer"
+      >
         <Icon name="Download" size={16} />
         دریافت فایل
       </a>
@@ -145,7 +155,7 @@ function FormField({ field: f, value, onChange, busy, resource, setError }) {
           <small>PDF، تصویر، متن یا Word · حداکثر ۵ مگابایت</small>
           {value && (
             <a
-              href={`/api/files/${value}`}
+              href={absoluteUrl(`/api/files/${value}`)}
               target="_blank"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
@@ -154,10 +164,18 @@ function FormField({ field: f, value, onChange, busy, resource, setError }) {
             </a>
           )}
         </div>
+      ) : f.type === 'date' ? (
+        <JalaliDateField
+          id={id}
+          label={f.label}
+          value={value || ''}
+          disabled={busy}
+          onChange={(iso) => onChange(iso)}
+        />
       ) : (
         <input
           {...attrs}
-          type={['number', 'date', 'time', 'email', 'tel'].includes(f.type) ? f.type : 'text'}
+          type={['number', 'time', 'email', 'tel'].includes(f.type) ? f.type : 'text'}
           min={f.min}
           max={f.max}
           step={f.type === 'number' ? (f.integer ? 1 : 'any') : undefined}
@@ -170,7 +188,6 @@ function FormField({ field: f, value, onChange, busy, resource, setError }) {
           }
         />
       )}
-      {f.type === 'date' && value && <small className="field-hint">{dateFa(value)}</small>}
     </div>
   );
 }
@@ -603,7 +620,7 @@ export function StudentProfile({ id, onClose, onEdit }) {
                         </div>
                         <a
                           className="btn btn-secondary"
-                          href={`/api/files/${d.file_id}`}
+                          href={absoluteUrl(`/api/files/${d.file_id}`)}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -812,7 +829,7 @@ function AssignmentDetail({ row, onClose, onEdit }) {
           {row.file_id && (
             <a
               className="btn btn-secondary"
-              href={`/api/files/${row.file_id}`}
+              href={absoluteUrl(`/api/files/${row.file_id}`)}
               target="_blank"
               rel="noreferrer"
             >
@@ -854,7 +871,7 @@ function AssignmentDetail({ row, onClose, onEdit }) {
                 {s.file_id && (
                   <a
                     className="file-link"
-                    href={`/api/files/${s.file_id}`}
+                    href={absoluteUrl(`/api/files/${s.file_id}`)}
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -1015,13 +1032,36 @@ function InvoiceDetail({ row, onClose, onEdit, onChanged }) {
               <span>مبلغ صورتحساب</span>
               <strong>{money(current.amount)}</strong>
             </div>
+            {Number(current.discount || 0) > 0 && (
+              <div>
+                <span>تخفیف</span>
+                <strong className="green-text">− {money(current.discount)}</strong>
+              </div>
+            )}
+            {Number(current.late_fee || 0) > 0 && (
+              <div>
+                <span>جریمه دیرکرد</span>
+                <strong className="orange-text">{money(current.late_fee)}</strong>
+              </div>
+            )}
             <div>
               <span>پرداخت‌شده</span>
               <strong className="green-text">{money(current.paid_amount)}</strong>
             </div>
             <div>
               <span>مانده قابل پرداخت</span>
-              <strong className="purple-text">{money(current.amount - current.paid_amount)}</strong>
+              <strong className="purple-text">
+                {money(
+                  current.remaining ??
+                    Math.max(
+                      0,
+                      current.amount -
+                        Number(current.discount || 0) +
+                        Number(current.late_fee || 0) -
+                        Number(current.paid_amount || 0),
+                    ),
+                )}
+              </strong>
             </div>
           </div>
           <div className="invoice-meta">
@@ -1085,6 +1125,16 @@ function InvoiceDetail({ row, onClose, onEdit, onChanged }) {
             <Button variant="secondary" icon="Pencil" onClick={() => onEdit(current)}>
               ویرایش صورتحساب
             </Button>
+          )}
+          {can('finance.late_fee') && (current.remaining ?? 0) > 0 && (
+            <LateFeeButton invoice={current} onDone={changed} />
+          )}
+          {can('finance.installments') && <InstallmentsButton invoice={current} onDone={changed} />}
+          {can('print.documents') && (
+            <PrintInvoiceButton
+              invoice={current}
+              studentLabel={lookups.students?.find((s) => s.id === current.student_id)?.label}
+            />
           )}
           <Button variant="secondary" onClick={onClose}>
             بستن
@@ -1225,6 +1275,11 @@ export default function Resources({ moduleId, embedded = false }) {
     [filters, setFilters] = useState({}),
     [showFilters, setShowFilters] = useState(false),
     [page, setPage] = useState(1),
+    [sort, setSort] = useState(''),
+    [dir, setDir] = useState('asc'),
+    [selectedIds, setSelectedIds] = useState([]),
+    [bulkEdit, setBulkEdit] = useState(false),
+    [bulkGrades, setBulkGrades] = useState(false),
     [limit, setLimit] = useState(10),
     [view, setView] = useState(moduleId === 'classes' ? 'grid' : 'list'),
     [form, setForm] = useState(null),
@@ -1245,11 +1300,14 @@ export default function Resources({ moduleId, embedded = false }) {
     setPage(1);
     setFilters({});
     setSearch('');
+    setSort('');
+    setDir('asc');
+    setSelectedIds([]);
     setDetail(null);
     openedId.current = null;
   }, [selected]);
   const path = selected
-    ? `/entities/${selected}?${query({ q: debounced, page, limit, ...filters })}`
+    ? `/entities/${selected}?${query({ q: debounced, page, limit, sort, dir, ...filters })}`
     : null;
   const { data, loading, error, refresh } = useApi(path);
   useEffect(() => {
@@ -1296,6 +1354,7 @@ export default function Resources({ moduleId, embedded = false }) {
     if (result?.account) setAccount(result.account);
   };
   const erase = async () => {
+    if (remove.bulk) return bulkDelete();
     try {
       await api(`/entities/${selected}/${remove.id}`, {
         method: 'DELETE',
@@ -1311,19 +1370,57 @@ export default function Resources({ moduleId, embedded = false }) {
     if (detail?.id === remove.id) closeDetail();
     toast('رکورد با موفقیت حذف شد.');
   };
-  const exportRows = async () => {
+  const exportRows = async (format = 'csv') => {
     setExporting(true);
     try {
       await download(
-        `/entities/${selected}/export?${query({ q: debounced, ...filters })}`,
-        `${selected}-${today()}.csv`,
+        `/entities/${selected}/export?${query({ q: debounced, sort, dir, format, ...filters })}`,
+        `${selected}-${today()}.${format}`,
       );
-      toast('خروجی آماده و دانلود شد.');
+      toast(`خروجی ${format === 'xlsx' ? 'اکسل' : 'CSV'} آماده و دانلود شد.`);
     } catch (e) {
       toast(e.message, 'error');
     } finally {
       setExporting(false);
     }
+  };
+  const toggleSort = (field) => {
+    if (sort === field) setDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else {
+      setSort(field);
+      setDir('asc');
+    }
+    setPage(1);
+  };
+  const bulkDelete = async () => {
+    const result = await api(`/entities/${selected}/bulk`, {
+      method: 'POST',
+      body: { action: 'delete', ids: selectedIds },
+    });
+    setSelectedIds([]);
+    refresh();
+    await refreshLookups();
+    toast(
+      result.failed.length
+        ? `${fa(result.ok.length)} رکورد حذف شد و ${fa(result.failed.length)} مورد رد شد.`
+        : `${fa(result.ok.length)} رکورد حذف شد.`,
+      result.failed.length ? 'error' : 'success',
+    );
+  };
+  const bulkPatch = async (patch) => {
+    const result = await api(`/entities/${selected}/bulk`, {
+      method: 'POST',
+      body: { action: 'update', ids: selectedIds, patch },
+    });
+    setSelectedIds([]);
+    setBulkEdit(false);
+    refresh();
+    toast(
+      result.failed.length
+        ? `${fa(result.ok.length)} رکورد ویرایش شد و ${fa(result.failed.length)} مورد رد شد.`
+        : `${fa(result.ok.length)} رکورد ویرایش شد.`,
+      result.failed.length ? 'error' : 'success',
+    );
   };
   if (!moduleOn(moduleId) || !selected)
     return (
@@ -1352,7 +1449,8 @@ export default function Resources({ moduleId, embedded = false }) {
     !!def.fields.find(
       (f) => f.type === 'reference' && f.required && !(lookups[f.resource] || []).length,
     ) || !can(`${selected}.view`);
-  const columns = def.columns.map((key) => fields.find((f) => f.name === key));
+  // A column may name a timestamp that is not an editable field; skip it instead of crashing.
+  const columns = def.columns.map((key) => fields.find((f) => f.name === key)).filter(Boolean);
   const descriptions = {
     students: 'یک پرونده کامل، برای هر دانش‌آموز؛ همراه با اطلاعات اولیا.',
     teachers: 'همکاران مدرسه و همراهان مسیر یادگیری را مدیریت کنید.',
@@ -1368,8 +1466,30 @@ export default function Resources({ moduleId, embedded = false }) {
       {!embedded && (
         <PageHeader title={module.name} description={descriptions[moduleId] || module.description}>
           {(selected === 'students' ? can('students.export') : can('reports.export')) && (
-            <Button variant="secondary" icon="Download" loading={exporting} onClick={exportRows}>
-              خروجی اکسل (CSV)
+            <>
+              <Button
+                variant="secondary"
+                icon="Download"
+                loading={exporting}
+                onClick={() => exportRows('csv')}
+              >
+                خروجی CSV
+              </Button>
+              {can('exports.xlsx') && (
+                <Button
+                  variant="secondary"
+                  icon="FileText"
+                  loading={exporting}
+                  onClick={() => exportRows('xlsx')}
+                >
+                  خروجی اکسل (XLSX)
+                </Button>
+              )}
+            </>
+          )}
+          {moduleId === 'education' && can('grades.bulk') && (
+            <Button icon="ListChecks" onClick={() => setBulkGrades(true)}>
+              ثبت گروهی نمره
             </Button>
           )}
           {canWrite && can(`${selected}.create`) && !createBlocked && (
@@ -1426,6 +1546,15 @@ export default function Resources({ moduleId, embedded = false }) {
                 )}
               </Button>
             )}
+            {(selected === 'students' ? can('students.export') : can('reports.export')) && (
+              <IconButton
+                name="FileText"
+                label={`خروجی XLSX از ${def.title}`}
+                disabled={exporting}
+                onClick={() => exportRows('xlsx')}
+              />
+            )}
+            {moduleId === 'library' && <LibraryTools onChanged={refresh} />}
             {selected === 'students' &&
               user.role === 'admin' &&
               can('students.import') &&
@@ -1494,6 +1623,42 @@ export default function Resources({ moduleId, embedded = false }) {
                 حذف فیلترها
               </Button>
             )}
+          </div>
+        )}
+        {canWrite && selectedIds.length > 0 && (
+          <div className="bulk-bar">
+            <span>
+              <Icon name="CheckCheck" size={17} />
+              {fa(selectedIds.length)} مورد انتخاب شده
+            </span>
+            {def.fields.some((f) => f.type === 'select') && (
+              <Button
+                variant="soft"
+                icon="Pencil"
+                onClick={() => setBulkEdit(true)}
+                disabled={!can(`${selected}.edit`)}
+              >
+                ویرایش گروهی
+              </Button>
+            )}
+            {can(`${selected}.delete`) && (
+              <Button
+                variant="danger"
+                icon="Trash2"
+                onClick={() =>
+                  setRemove({
+                    bulk: true,
+                    label: `${fa(selectedIds.length)} مورد انتخاب‌شده`,
+                    name: 'bulk',
+                  })
+                }
+              >
+                حذف گروهی
+              </Button>
+            )}
+            <Button variant="ghost" icon="X" onClick={() => setSelectedIds([])}>
+              لغو انتخاب
+            </Button>
           </div>
         )}
         {error ? (
@@ -1599,16 +1764,66 @@ export default function Resources({ moduleId, embedded = false }) {
                 <thead>
                   <tr>
                     <th className="row-number">ردیف</th>
+                    {canWrite && (
+                      <th className="row-check">
+                        <input
+                          type="checkbox"
+                          aria-label="انتخاب همه ردیف‌های این صفحه"
+                          checked={
+                            data.rows.length > 0 &&
+                            data.rows.every((row) => selectedIds.includes(row.id))
+                          }
+                          onChange={(e) =>
+                            setSelectedIds(e.target.checked ? data.rows.map((row) => row.id) : [])
+                          }
+                        />
+                      </th>
+                    )}
                     {columns.map((f) => (
-                      <th key={f.name}>{f.name === 'first_name' ? def.singular : f.label}</th>
+                      <th key={f.name}>
+                        <button
+                          type="button"
+                          className={`sort-header ${sort === f.name ? 'active' : ''}`}
+                          onClick={() => toggleSort(f.name)}
+                          title={`مرتب‌سازی بر اساس ${f.label}`}
+                        >
+                          {f.name === 'first_name' ? def.singular : f.label}
+                          <Icon
+                            name={
+                              sort !== f.name
+                                ? 'ChevronDown'
+                                : dir === 'asc'
+                                  ? 'ChevronUp'
+                                  : 'ChevronDown'
+                            }
+                            size={14}
+                          />
+                        </button>
+                      </th>
                     ))}
                     <th className="actions-column">عملیات</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.rows.map((row, i) => (
-                    <tr key={row.id}>
+                    <tr key={row.id} className={selectedIds.includes(row.id) ? 'row-selected' : ''}>
                       <td className="row-number">{fa((page - 1) * limit + i + 1)}</td>
+                      {canWrite && (
+                        <td className="row-check">
+                          <input
+                            type="checkbox"
+                            aria-label={`انتخاب ${resourceLabel(selected, row)}`}
+                            checked={selectedIds.includes(row.id)}
+                            onChange={(e) =>
+                              setSelectedIds((ids) =>
+                                e.target.checked
+                                  ? [...ids, row.id]
+                                  : ids.filter((id) => id !== row.id),
+                              )
+                            }
+                          />
+                        </td>
+                      )}
                       {columns.map((f, ci) => (
                         <td key={f.name}>
                           {ci === 0 ? (
@@ -1744,6 +1959,8 @@ export default function Resources({ moduleId, embedded = false }) {
           <AssignmentDetail row={detail} onClose={closeDetail} onEdit={edit} />
         ) : selected === 'invoices' ? (
           <InvoiceDetail row={detail} onClose={closeDetail} onEdit={edit} onChanged={refresh} />
+        ) : selected === 'loans' ? (
+          <LoanDetail row={detail} onClose={closeDetail} onChanged={refresh} />
         ) : (
           <GenericDetail
             resource={selected}
@@ -1754,10 +1971,31 @@ export default function Resources({ moduleId, embedded = false }) {
             onAccountCreated={refresh}
           />
         ))}
+      {bulkEdit && (
+        <BulkEdit
+          def={def}
+          count={selectedIds.length}
+          onApply={bulkPatch}
+          onClose={() => setBulkEdit(false)}
+        />
+      )}
+      {bulkGrades && (
+        <BulkGrades
+          onClose={() => setBulkGrades(false)}
+          onSaved={() => {
+            refresh();
+            toast('نمرات گروهی ثبت شدند.');
+          }}
+        />
+      )}
       {remove && (
         <Confirm
           title={`حذف ${def.singular}`}
-          description={`«${resourceLabel(selected, remove)}» حذف شود؟ این عملیات قابل بازگشت نیست. سوابق وابسته مانع حذف می‌شوند؛ برای حفظ سوابق، وضعیت پرونده را غیرفعال کنید.`}
+          description={
+            remove.bulk
+              ? `${fa(selectedIds.length)} رکورد انتخاب‌شده حذف شوند؟ موردهای وابسته رد می‌شوند و در پایان گزارش می‌گیرید.`
+              : `«${resourceLabel(selected, remove)}» حذف شود؟ این عملیات قابل بازگشت نیست. سوابق وابسته مانع حذف می‌شوند؛ برای حفظ سوابق، وضعیت پرونده را غیرفعال کنید.`
+          }
           danger
           confirmLabel="بله، حذف شود"
           onConfirm={erase}

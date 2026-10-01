@@ -20,7 +20,7 @@ export function installationRouter(db, security, { installToken, demo }) {
     res.json({
       installed: !!db.setting('installed'),
       demo,
-      version: '1.0.0',
+      version: '1.1.0',
       features: featureDefs.length,
       modules: moduleDefs,
       requirements: [

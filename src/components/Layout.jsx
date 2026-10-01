@@ -3,7 +3,18 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useApp, useApi } from '../context';
 import { roles } from '../../shared/catalog';
 import { api, fa, dateFa, relativeDate } from '../lib/api';
-import { Avatar, Badge, Button, Empty, ErrorBox, Icon, IconButton, Modal, SearchInput } from './ui';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Empty,
+  ErrorBox,
+  ErrorReportButton,
+  Icon,
+  IconButton,
+  Modal,
+  SearchInput,
+} from './ui';
 const paths = [
   { to: '/', name: 'داشبورد', icon: 'LayoutDashboard', module: 'dashboard' },
   { to: '/students', name: 'دانش‌آموزان', icon: 'GraduationCap', module: 'students' },
@@ -17,6 +28,7 @@ const paths = [
   { to: '/classes', name: 'کلاس‌ها', icon: 'School', module: 'classes' },
   { to: '/attendance', name: 'حضور و غیاب', icon: 'CalendarCheck2', module: 'attendance' },
   { to: '/education', name: 'آموزش و نمرات', icon: 'BookOpen', module: 'education' },
+  { to: '/meetings', name: 'ملاقات اولیا', icon: 'CalendarClock', module: 'meetings' },
   { to: '/tickets', name: 'پیام‌ها و تیکت‌ها', icon: 'MessagesSquare', module: 'tickets' },
   { to: '/calendar', name: 'تقویم و رویدادها', icon: 'CalendarDays', module: 'calendar' },
   {
@@ -34,6 +46,7 @@ export const modulePaths = {
   teachers: '/teachers',
   classes: '/classes',
   attendance: '/attendance',
+  meetings: '/meetings',
   education: '/education',
   tickets: '/tickets',
   announcements: '/announcements',
@@ -372,12 +385,13 @@ export default function Layout() {
             </div>
             <Icon name="ArrowUpLeft" size={17} />
           </button>
+          <ErrorReportButton />
           <div className="sidebar-version">
             <span>
               <i />
               سامانه آماده است
             </span>
-            <span>نسخه ۱.۰.۰</span>
+            <span>نسخه ۱.۱.۰</span>
           </div>
         </div>
       </aside>

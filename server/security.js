@@ -3,6 +3,11 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { moduleDefs, featureDefs, resourceDefs } from '../shared/catalog.js';
 import { schoolDate } from '../shared/dates.js';
+// messaging.js imports notificationFeature from this module, so it is wired lazily.
+let queueOutbox = null;
+export const setOutboxQueue = (fn) => {
+  queueOutbox = fn;
+};
 export class HttpError extends Error {
   constructor(status, message, code) {
     super(message);
@@ -66,16 +71,21 @@ export const notify = (
   link = '/',
   type = 'info',
   source_feature = null,
-) =>
-  user_id &&
-  db.insert('notifications', {
+) => {
+  if (!user_id) return null;
+  const feature = source_feature || notificationFeature({ type, title });
+  const id = db.insert('notifications', {
     user_id,
     title,
     body,
     link,
     type,
-    source_feature: source_feature || notificationFeature({ type, title }),
+    source_feature: feature,
   });
+  // SMS/email copy (queued only; delivery happens on a later request).
+  queueOutbox?.(db, user_id, { title, body, link, source_feature: feature });
+  return id;
+};
 export function notificationFeature(row) {
   return (
     row.source_feature ||
@@ -90,7 +100,16 @@ export function notificationFeature(row) {
   );
 }
 
-export function makeSecurity(db) {
+// Kept outside makeSecurity so both request handling and tests can reuse it.
+export const normalizeBase = (value = '') => {
+  const raw = String(value || '').trim();
+  if (!raw || raw === '/') return '';
+  return `/${raw.replace(/^\/+|\/+$/g, '')}`;
+};
+export function makeSecurity(db, { basePath } = {}) {
+  const security = { basePath: normalizeBase(basePath ?? process.env.BASE_PATH) };
+  const securityPath = (req) => security.basePath || normalizeBase(req?.basePath);
+
   const enabled = (feature) => {
     const def = featureDefs.find((f) => f.id === feature);
     return (
@@ -181,7 +200,7 @@ export function makeSecurity(db) {
       secure: preview || req.secure || process.env.NODE_ENV === 'production',
       sameSite: preview ? 'none' : 'lax',
       partitioned: preview,
-      path: '/',
+      path: `${securityPath(req)}/`.replace(/\/{2,}/g, '/'),
     };
   };
   const session = (req, res, user) => {
@@ -229,7 +248,17 @@ export function makeSecurity(db) {
     }
     next();
   };
-  return { enabled, config, loadSession, auth, admin, feature, session, csrf, cookieOptions };
+  return Object.assign(security, {
+    enabled,
+    config,
+    loadSession,
+    auth,
+    admin,
+    feature,
+    session,
+    csrf,
+    cookieOptions,
+  });
 }
 
 export function teacherClasses(db, user) {
@@ -295,6 +324,25 @@ export function scope(db, resource, user, alias = 'r') {
       params: [user.student_id || -1],
     };
   if (['assignments', 'exams', 'schedules'].includes(resource)) return inClasses('class_id');
+  if (['staff', 'staff_attendance', 'staff_payroll', 'payroll'].includes(resource))
+    return teacher && resource === 'payroll'
+      ? { sql: `${alias}.teacher_id=?`, params: [user.teacher_id || -1] }
+      : { sql: '1=0', params: [] };
+  if (['leaves', 'reservations', 'student_years', 'meeting_bookings'].includes(resource)) {
+    if (teacher)
+      return {
+        sql: `${alias}.student_id IN (SELECT id FROM students WHERE class_id IN (${list.map(() => '?').join(',')}))`,
+        params: list,
+      };
+    return { sql: `${alias}.student_id=?`, params: [user.student_id || -1] };
+  }
+  if (resource === 'meeting_slots') {
+    if (teacher) return { sql: `${alias}.teacher_id=?`, params: [user.teacher_id || -1] };
+    return {
+      sql: `${alias}.class_id IN (${list.map(() => '?').join(',')})`,
+      params: list,
+    };
+  }
   if (resource === 'announcements' && teacher)
     return {
       sql: `(${alias}.class_id IS NULL OR ${alias}.class_id IN (${list.map(() => '?').join(',')})) AND (${alias}.audience IN ('all','teacher') OR ${alias}.author_id=?)`,
@@ -315,7 +363,9 @@ export function scope(db, resource, user, alias = 'r') {
       sql: `${alias}.id IN (SELECT route_id FROM students WHERE id=?)`,
       params: [user.student_id || -1],
     };
-  return { sql: '1=1', params: [] };
+  // Defence in depth: a resource added to the registry without an explicit scope rule
+  // stays invisible to non-admins instead of silently becoming world-readable.
+  return { sql: '1=0', params: [] };
 }
 export function teachesSubject(db, user, classId, subjectId) {
   return (

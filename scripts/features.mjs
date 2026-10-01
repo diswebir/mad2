@@ -37,6 +37,38 @@ const extraRoutes = {
   'settings.reset_password': 'POST /api/settings/accounts/:id/reset-password',
   'settings.backup': 'GET /api/settings/backup',
   'settings.audit': 'GET /api/settings/audit',
+  'settings.restore': 'POST /api/settings/backup/restore + GET /api/settings/restore/history',
+  'settings.messaging':
+    'GET/PATCH /api/settings/messaging + POST /api/settings/messaging/test + GET /api/settings/outbox',
+  'settings.status': 'GET /api/status',
+  'settings.support': 'GET /api/support/reports + PATCH /api/support/reports/:id',
+  'support.report': 'POST /api/support/report',
+  'exports.xlsx': 'GET /api/entities/:resource/export?format=xlsx + report endpoints',
+  'print.documents': 'UI /print/cards/:classId?student= + چاپ صورتحساب و گزارش حضور',
+  'grades.bulk': 'POST /api/assignments/grades/bulk',
+  'reports.report_card': 'GET /api/analysis/report-card/:studentId + /api/analysis/report-cards',
+  'reports.trend': 'GET /api/analysis/trend/:studentId',
+  'reports.debtors': 'GET /api/finance/debtors?format=csv|xlsx',
+  'reports.ministerial': 'GET /api/analysis/ministerial?type=students|grades&format=csv|xlsx',
+  'reports.promote': 'GET /api/analysis/promotion/preview + POST /api/analysis/promotion/apply',
+  'student_years.view': 'GET /api/analysis/student-years',
+  'finance.installments': 'POST /api/finance/installments',
+  'finance.late_fee': 'POST /api/finance/invoices/:id/late-fee + GET /api/finance/debtors',
+  'library.renew': 'POST /api/library/loans/:id/renew',
+  'library.reserve': 'GET/POST /api/library/reservations + PATCH /api/library/reservations/:id',
+  'library.fines': 'POST /api/library/loans/:id/fine + GET /api/library/overdue',
+  'loans.edit': 'PATCH /api/entities/loans/:id + POST /api/library/loans/:id/return',
+  'leaves.view': 'GET /api/leaves + UI /attendance?tab=leaves',
+  'leaves.submit': 'POST /api/leaves + DELETE /api/leaves/:id',
+  'leaves.approve': 'PATCH /api/leaves/:id/decision',
+  'meetings.book': 'POST /api/meetings/book + PATCH /api/meetings/bookings/:id',
+  'meetings.manage': 'POST/DELETE /api/meetings/slots',
+  'meeting_slots.view': 'GET /api/meetings/slots + GET /api/meetings/bookings + UI /meetings',
+  'reservations.view': 'GET /api/library/reservations + UI /library?tab=reservations',
+  'staff_attendance.view': 'GET /api/entities/staff_attendance + UI /teachers?tab=staff_attendance',
+  'staff_payroll.view': 'GET /api/entities/staff_payroll + UI /teachers?tab=staff_payroll',
+  'staff.view': 'GET /api/entities/staff + UI /teachers?tab=staff',
+  'leaves.create': 'POST /api/entities/leaves (مدیر)',
 };
 const ui = {
   dashboard: '/',
@@ -51,6 +83,7 @@ const ui = {
   finance: '/finance',
   library: '/library',
   services: '/services',
+  meetings: '/meetings',
   reports: '/reports',
   notifications: '/notifications',
   profile: '/profile',
@@ -79,7 +112,7 @@ const roleNames = (f) => {
   if (f.id === 'tickets.manage') return 'گیرندهٔ تیکت یا مدیر';
   return 'همه نقش‌ها با scope مجاز';
 };
-let text = `# فهرست دقیق ${featureDefs.length} قابلیت نسخهٔ اول\n\nاین فهرست از \`shared/catalog.js\` با \`npm run features\` ساخته می‌شود. همهٔ موارد زیر endpoint یا بخش UI واقعی دارند؛ برنامه‌ریزی آینده در این شمارش نیست.\n\n**تعریف شمارش:** ${Object.keys(resourceDefs).length} نوع پرونده × چهار عملیات مستقل مشاهده/جست‌وجو/فیلتر/صفحه‌بندی، ثبت، ویرایش و حذف ایمن = ۱۰۰ قابلیت؛ به‌علاوهٔ ۳۴ workflow و کنترل مستقل. ۱۳۴ نام تجاری مجزا یا ۱۳۴ صفحه ادعا نشده است.\n\nکلید ماژول و کلید قابلیت در UI و سرور اعمال می‌شوند. نقش و scope حتی پس از فعال‌بودن کلید لازم‌اند. قابلیت مدیریت کلیدها و ماژول پایهٔ تنظیمات برای جلوگیری از قفل مدیریت ضروری‌اند. «تغییر رمز اجباری» نیز با خاموش‌شدن تغییر رمز اختیاری از دسترس خارج نمی‌شود.\n\n`;
+let text = `# فهرست دقیق ${featureDefs.length} قابلیت سامانه\n\nاین فهرست از \`shared/catalog.js\` با \`npm run features\` ساخته می‌شود. همهٔ موارد زیر endpoint یا بخش UI واقعی دارند؛ برنامه‌ریزی آینده در این شمارش نیست.\n\n**تعریف شمارش:** ${Object.keys(resourceDefs).length} نوع پرونده × چهار عملیات مستقل مشاهده/جست‌وجو/فیلتر/صفحه‌بندی، ثبت، ویرایش و حذف ایمن؛ به‌علاوهٔ workflow‌ها و کنترل‌های مستقل مانند کد پیگیری خطا، بازیابی پشتیبان، صف پیامک/ایمیل، ارتقای پایان سال و ویرایش گروهی. شمارش دقیق هر ماژول در سرصفحهٔ همان بخش آمده است.\n\nکلید ماژول و کلید قابلیت در UI و سرور اعمال می‌شوند. نقش و scope حتی پس از فعال‌بودن کلید لازم‌اند. قابلیت مدیریت کلیدها و ماژول پایهٔ تنظیمات برای جلوگیری از قفل مدیریت ضروری‌اند. «تغییر رمز اجباری» نیز با خاموش‌شدن تغییر رمز اختیاری از دسترس خارج نمی‌شود.\n\n`;
 let index = 0;
 for (const mod of moduleDefs) {
   const features = featureDefs.filter((f) => f.module === mod.id);
@@ -95,7 +128,7 @@ for (const mod of moduleDefs) {
   text += '\n';
 }
 text +=
-  '## ابزارهای تکمیلی خارج از شمارش\n\nویزارد نصب توکن‌دار، جست‌وجوی سراسری مجاز، فونت محلی وزیرمتن، رابط RTL، ورود و نشست امن، نمایش کارت/جدول، انتخاب‌گرهای رابطه، CSV عمومی پرونده‌های مجاز و بستهٔ cPanel وجود دارند ولی دوباره در عدد ۱۳۴ شمرده نشده‌اند.\n\n## موارد خارج از نسخهٔ اول\n\nدرگاه پرداخت آنلاین، SMS/ایمیل خودکار، اتصال سناد/شاد، MFA، آزمون آنلاین سؤالی، کارنامهٔ رسمی مصوب، چندمدرسه‌ای، پنل چندفرزندی ولی و ذخیرهٔ چند worker پیاده نشده‌اند. CSV فایل اکسل XLSX نیست؛ در Excel قابل بازشدن است. پشتیبان SQLite شامل uploads نیست.\n\n## آزمون\n\n`tests/api.test.js` همهٔ ۱۰۰ عملیات عمومی را روی ۲۵ نوع پرونده اجرا می‌کند و مجوز، خاموش‌شدن ماژول/قابلیت، تراکنش، حضور، تیکت، فایل، تکلیف، پرداخت، ورود اجباری رمز، نصب یک‌باره و دوام/قفل بانک را نیز بررسی می‌کند. تست مرورگر در `tests/ui.spec.js` است.\n';
+  '## ابزارهای تکمیلی خارج از شمارش\n\nویزارد نصب توکن‌دار، جست‌وجوی سراسری مجاز، فونت محلی وزیرمتن، رابط کامل RTL، تقویم و انتخاب‌گر تاریخ جلالی، مرتب‌سازی ستون‌ها، عملیات گروهی ردیف‌ها، چاپ کارنامه و صورتحساب، خروجی xlsx، صفحهٔ وضعیت سرویس، گزارش خطای کاربران با کد پیگیری، بستهٔ cPanel و نصب در زیرپوشه (BASE_PATH) وجود دارند ولی دوباره در شمارش ماژول‌ها تکرار نشده‌اند.\n\n## وضعیت نسخهٔ ۱.۱\n\nنسخهٔ نخست SMS/ایمیل خودکار، اتصال سناد/شاد، کارنامهٔ رسمی، درگاه پرداخت آنلاین، MFA و آزمون آنلاین سؤالی نداشت. در نسخهٔ ۱.۱ این موارد اضافه شد: پل پیامک/ایمیل با صف ارسال و تلاش دوباره، خروجی استاندارد وزارتی (CSV و XLSX)، کارنامهٔ دوره با چاپ و بایگانی سالانه، ثبت گروهی نمره، اقساط و جریمهٔ دیرکرد با گزارش بدهکاران، مرخصی با گردش تأیید، ملاقات اولیا با نوبت‌دهی، کتابخانه با رزرو/تمدید/جریمه، کارکنان و حضور کارکنان، بازیابی پشتیبان، صفحهٔ وضعیت و گزارش خطا، و نصب در زیرپوشه.\n\nدرگاه پرداخت آنلاین، MFA و آزمون آنلاین سؤالی همچنان در نقشهٔ راه است. درگاه بانکی در نسخهٔ ۱.۱ فقط به‌صورت ثبت رسید واریز کار می‌کند.\n\n## آزمون\n\n`tests/api.test.js` همهٔ عملیات عمومی CRUD را روی ${Object.keys(resourceDefs).length} نوع پرونده اجرا می‌کند و مجوز، خاموش‌شدن ماژول/قابلیت، تراکنش، حضور، تیکت، فایل، تکلیف، پرداخت، ورود اجباری رمز، نصب یک‌باره و دوام/قفل بانک را نیز بررسی می‌کند. `tests/round3.test.js` قابلیت‌های نسخهٔ ۱.۱ (تقویم جلالی، xlsx، مالی، مرخصی، ملاقات، کتابخانه، تحلیل و ارتقا، عملیات گروهی، وضعیت سرویس، پیام‌رسانی و بازیابی پشتیبان) را پوشش می‌دهد. تست مرورگر در `tests/ui.spec.js` است و نصب زیرپوشه در `tests/deploy.test.js` بررسی می‌شود.\n';
 fs.mkdirSync('docs', { recursive: true });
 fs.writeFileSync('docs/FEATURES.md', await format(text, { parser: 'markdown', printWidth: 100 }));
 console.log(`Generated docs/FEATURES.md: ${index} features / ${moduleDefs.length} modules.`);

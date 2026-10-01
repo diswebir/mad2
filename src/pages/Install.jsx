@@ -452,7 +452,7 @@ export default function Install() {
         </section>
       </main>
       <footer className="install-footer">
-        مدرسه‌یار · ساده در نصب، کامل در مدیریت · نسخه ۱.۰.۰
+        مدرسه‌یار · ساده در نصب، کامل در مدیریت · نسخه ۱.۱.۰
       </footer>
     </div>
   );

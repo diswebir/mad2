@@ -349,7 +349,9 @@ test('all generic resource screens, reports, notifications, profile and settings
   test.setTimeout(90000);
   await dashboard(page);
   for (const [module, resources] of Object.entries(moduleGroups)) {
-    if (module === 'calendar') continue;
+    // Modules with a dedicated page (attendance roll, meetings, reports, calendar) are
+    // covered by their own tests below.
+    if (['calendar', 'attendance', 'meetings', 'reports'].includes(module)) continue;
     for (const resource of resources) {
       await page.goto(`/${module}?tab=${resource}`);
       await expect(page.locator('.resource-table tbody tr,.resource-card').first()).toBeVisible();
@@ -505,4 +507,178 @@ test('attendance defaults to a real class before the first save', async ({ page 
     .click();
   await page.getByRole('button', { name: /ذخیره تغییرات/ }).click();
   await expect(page.locator('.toast-container')).toContainText('ذخیره شد');
+});
+
+/* ── Round three: Jalali picker, bulk actions, workflows, print, service ──── */
+test('jalali picker records a Persian date and rows can be sorted and bulk-deleted', async ({
+  page,
+}) => {
+  await dashboard(page);
+  await page.goto('/services?tab=visitors');
+  const created = [];
+  for (const name of ['مهمان آزمایشی الف', 'مهمان آزمایشی ب']) {
+    await page.getByRole('button', { name: 'افزودن مراجعه', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.locator('#field-visitors-full_name').fill(name);
+    await dialog.locator('#field-visitors-purpose').fill('بررسی آزمایشی');
+    await dialog.locator('#field-visitors-host').fill('مدیر مدرسه');
+    await dialog.locator('#field-visitors-entry_time').fill('09:30');
+    // The date field is a Jalali picker, not a free Gregorian text box.
+    await dialog.getByLabel('سال تاریخ مراجعه').selectOption('1405');
+    await dialog.getByLabel('ماه تاریخ مراجعه').selectOption('7');
+    await dialog.getByLabel('روز تاریخ مراجعه').selectOption('9');
+    await dialog.getByRole('button', { name: 'ثبت مراجعه', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    created.push(name);
+  }
+  await expect(page.locator('.data-table')).toContainText('مهمان آزمایشی الف');
+  await expect(page.locator('.data-table')).toContainText('مهر ۱۴۰۵');
+
+  // Persian header text is rendered for the stored ISO date.
+  expect(await page.locator('.data-table tbody').innerText()).not.toContain('2026-');
+
+  // Sorting headers reorder the table.
+  await page.locator('.sort-header').filter({ hasText: 'نام مراجعه‌کننده' }).click();
+  await expect(page.locator('.sort-header.active')).toContainText('نام');
+
+  // Selecting rows reveals bulk operations; delete only the fixtures we created.
+  for (const name of created) {
+    await page.getByRole('checkbox', { name: `انتخاب ${name}` }).check();
+  }
+  await expect(page.locator('.bulk-bar')).toContainText('۲ مورد انتخاب شده');
+  await page.getByRole('button', { name: 'حذف گروهی' }).click();
+  await page.getByRole('button', { name: 'بله، حذف شود' }).click();
+  await expect(page.locator('.toast').last()).toContainText('رکورد حذف شد');
+  await expect(page.locator('.data-table')).not.toContainText('مهمان آزمایشی الف');
+});
+
+test('xlsx exports download a real workbook from the resource list', async ({ page }) => {
+  await dashboard(page);
+  await page.getByRole('link', { name: 'دانش‌آموزان' }).click();
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'خروجی اکسل (XLSX)' }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
+  const file = await download.path();
+  const head = fs.readFileSync(file).subarray(0, 2).toString('utf8');
+  expect(head).toBe('PK');
+});
+
+test('the principal sees today tasks and families submit a leave that the school approves', async ({
+  page,
+}) => {
+  await dashboard(page);
+  const myDay = page.locator('.my-day-panel');
+  await expect(myDay).toContainText('کارهای امروز من');
+  await expect(myDay).toContainText('کلاس بدون ثبت حضور امروز');
+
+  await page.getByRole('link', { name: 'حضور و غیاب', exact: true }).click();
+  await page.getByRole('button', { name: 'مرخصی و غیبت موجه' }).click();
+  await expect(page.getByRole('heading', { name: 'درخواست‌های مرخصی و غیبت موجه' })).toBeVisible();
+  await page.getByRole('button', { name: 'درخواست جدید' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('دانش‌آموز').selectOption('1');
+  await dialog.getByLabel('سال شروع مرخصی').selectOption('1405');
+  await dialog.getByLabel('ماه شروع مرخصی').selectOption('7');
+  await dialog.getByLabel('روز شروع مرخصی').selectOption('20');
+  await dialog.getByLabel('توضیح درخواست').fill('مراجعه به پزشک برای معاینه دوره‌ای');
+  await dialog.getByRole('button', { name: 'ثبت درخواست' }).click();
+  await expect(page.locator('.toast').last()).toContainText('درخواست مرخصی ثبت شد');
+  const row = page.locator('tbody tr').filter({ hasText: 'آراد حسینی' }).first();
+  await expect(row).toContainText('در انتظار تأیید');
+  await row.getByRole('button', { name: 'بررسی' }).click();
+  await page.getByRole('button', { name: 'تأیید درخواست' }).click();
+  await expect(page.locator('.toast').last()).toContainText('تأیید شد');
+  await expect(page.locator('tbody tr').filter({ hasText: 'آراد حسینی' }).first()).toContainText(
+    'تأییدشده',
+  );
+});
+
+test('parent-teacher meeting slots are created and booked from the interface', async ({ page }) => {
+  await dashboard(page);
+  await page.getByRole('link', { name: 'ملاقات اولیا' }).click();
+  await page.getByRole('button', { name: 'بازه ملاقات جدید' }).click();
+  const form = page.getByRole('dialog');
+  await form.getByLabel('عنوان جلسه').fill('جلسه آزمایشی اولیا');
+  await form.getByLabel('سال تاریخ جلسه').selectOption('1405');
+  await form.getByLabel('ماه تاریخ جلسه').selectOption('7');
+  await form.getByLabel('روز تاریخ جلسه').selectOption('25');
+  await form.getByLabel('معلم').selectOption('1');
+  await form.getByLabel('کلاس').selectOption('1');
+  await form.getByLabel('ظرفیت هر بازه').fill('2');
+  await form.getByLabel('مکان').fill('کلاس ۱۰۱');
+  await form.getByRole('button', { name: 'ثبت بازه' }).click();
+  const card = page.locator('.meeting-slot').filter({ hasText: 'جلسه آزمایشی اولیا' });
+  await expect(card).toContainText('کلاس ۱۰۱');
+  await card.getByRole('button', { name: 'گرفتن نوبت' }).click();
+  const booking = page.getByRole('dialog');
+  await booking.getByLabel('دانش‌آموز').selectOption('1');
+  await booking.getByLabel('موضوع گفت‌وگو').fill('بررسی وضعیت درسی');
+  await booking.getByRole('button', { name: 'ثبت نوبت' }).click();
+  await expect(page.locator('.toast').last()).toContainText('نوبت ملاقات ثبت شد');
+  await page.getByRole('button', { name: 'نوبت‌های ثبت‌شده' }).click();
+  await expect(page.locator('.data-table')).toContainText('رزروشده');
+});
+
+test('report cards print from the reports tab and the print stylesheet hides the app shell', async ({
+  page,
+}) => {
+  await dashboard(page);
+  await page.getByRole('link', { name: 'گزارش‌ها' }).click();
+  await page.getByRole('button', { name: 'کارنامه دوره' }).click();
+  await page.getByLabel('انتخاب کلاس').selectOption('1');
+  await expect(page.locator('.report-stat')).toHaveCount(3);
+  await page.getByRole('link', { name: 'چاپ کارنامه‌های کلاس' }).click();
+  await expect(page.locator('.print-sheet').first()).toBeVisible();
+  await expect(page.locator('.print-sheet').first()).toContainText('کارنامه تحصیلی');
+  await expect(page.locator('.print-sheet').first()).toContainText('حضور');
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.locator('.print-toolbar')).toBeHidden();
+  expect(await page.locator('.print-sheet').count()).toBeGreaterThan(1);
+});
+
+test('service status, messaging bridge and the user error report button work end to end', async ({
+  page,
+}) => {
+  await dashboard(page);
+  // Anyone can report a fault and receives a tracking code.
+  await page.getByRole('button', { name: 'گزارش مشکل' }).click();
+  const report = page.getByRole('dialog');
+  await report.getByLabel('شرح مشکل').fill('دکمه ذخیره نمره در مرورگر من پاسخ نمی‌دهد.');
+  await report.getByRole('button', { name: 'ارسال گزارش' }).click();
+  await expect(report).toContainText('کد پیگیری');
+  const code = (await report.locator('strong[dir="ltr"]').textContent()).trim();
+  expect(code).toMatch(/^ER-/);
+  await report.getByRole('button', { name: 'بستن', exact: true }).click();
+
+  await page.getByRole('link', { name: 'تنظیمات' }).click();
+  await page.getByRole('button', { name: 'وضعیت سرویس' }).click();
+  await expect(page.locator('.status-panel')).toContainText('یکپارچگی پایگاه‌داده');
+  await page.getByRole('button', { name: 'گزارش خطاها' }).click();
+  const row = page.locator('tbody tr').filter({ hasText: code });
+  await expect(row).toBeVisible();
+  await row.getByRole('button', { name: 'حل شد' }).click();
+  await expect(page.locator('.toast').last()).toContainText('وضعیت گزارش به‌روزرسانی شد');
+
+  await page.getByRole('button', { name: 'پیامک و ایمیل' }).click();
+  const messaging = page.locator('.messaging-panel');
+  await expect(messaging).toContainText('پل پیامک و ایمیل');
+  await messaging.getByLabel('فعال‌بودن پیامک').check();
+  await messaging.getByRole('button', { name: 'ذخیره تنظیمات پیام‌رسانی' }).click();
+  await expect(page.locator('.toast').last()).toContainText('ذخیره شد');
+
+  await page.getByRole('button', { name: 'بازگردانی پشتیبان' }).click();
+  await expect(page.locator('.restore-panel')).toContainText('بازگردانی پشتیبان');
+});
+
+test('personal trend analytics render monthly grade and attendance bars', async ({ page }) => {
+  await dashboard(page);
+  await page.getByRole('link', { name: 'گزارش‌ها' }).click();
+  await page.getByRole('button', { name: 'روند دانش‌آموز' }).click();
+  await page.getByLabel('انتخاب دانش‌آموز').selectOption('1');
+  await expect(page.locator('.trend-column').first()).toContainText('معدل ماهانه');
+  await expect(page.locator('.trend-row').first()).toBeVisible();
+  await page.getByRole('button', { name: 'خروجی وزارت' }).click();
+  await expect(page.locator('.export-grid')).toContainText('سامانه‌های بیرونی');
 });

@@ -1,5 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { api, today } from '../lib/api';
+import { daysInMonth, jalaliMonths, jalaliParts, jalaliToIso } from '../../shared/jalali';
 import {
   LayoutDashboard,
   GraduationCap,
@@ -90,6 +92,15 @@ import {
   ArrowDownToLine,
   ChevronUp,
   UserPlus,
+  ListChecks,
+  PlaneTakeoff,
+  CalendarCheck,
+  History,
+  Bookmark,
+  BookMarked,
+  IdCard,
+  UserCheck,
+  WalletCards,
 } from 'lucide-react';
 const icons = {
   LayoutDashboard,
@@ -181,6 +192,15 @@ const icons = {
   ArrowDownToLine,
   ChevronUp,
   UserPlus,
+  ListChecks,
+  PlaneTakeoff,
+  CalendarCheck,
+  History,
+  Bookmark,
+  BookMarked,
+  IdCard,
+  UserCheck,
+  WalletCards,
 };
 export function Icon({ name, size = 20, ...props }) {
   const Component = icons[name] || Circle;
@@ -461,6 +481,186 @@ export function Credentials({ account, onClose }) {
         </Button>
       </footer>
     </Modal>
+  );
+}
+// Jalali (Solar Hijri) date picker: the stored value stays ISO, the interface is Persian.
+export function JalaliDateField({ id, value, onChange, disabled, label = 'تاریخ' }) {
+  const parts = value ? jalaliParts(value) : null;
+  const [draft, setDraft] = useState({
+    jy: parts?.jy || '',
+    jm: parts?.jm || '',
+    jd: parts?.jd || '',
+  });
+  useEffect(() => {
+    const next = value ? jalaliParts(value) : null;
+    setDraft({ jy: next?.jy || '', jm: next?.jm || '', jd: next?.jd || '' });
+  }, [value]);
+  const thisYear = jalaliParts(today())?.jy || 1405;
+  const years = Array.from({ length: 12 }, (_, i) => thisYear - 6 + i);
+  const maxDay = draft.jy && draft.jm ? daysInMonth(Number(draft.jy), Number(draft.jm)) : 31;
+  const update = (next) => {
+    setDraft(next);
+    if (next.jy && next.jm && next.jd)
+      onChange(
+        jalaliToIso({ ...next, jy: Number(next.jy), jm: Number(next.jm), jd: Number(next.jd) }) ||
+          '',
+      );
+  };
+  return (
+    <div className="jalali-date-field">
+      <select
+        id={`${id}-year`}
+        aria-label={`سال ${label}`}
+        disabled={disabled}
+        value={draft.jy}
+        onChange={(e) => update({ ...draft, jy: e.target.value })}
+      >
+        <option value="">سال</option>
+        {years.map((y) => (
+          <option key={y} value={y}>
+            {y.toLocaleString('fa-IR', { useGrouping: false })}
+          </option>
+        ))}
+      </select>
+      <select
+        id={`${id}-month`}
+        aria-label={`ماه ${label}`}
+        disabled={disabled}
+        value={draft.jm}
+        onChange={(e) => update({ ...draft, jm: e.target.value })}
+      >
+        <option value="">ماه</option>
+        {jalaliMonths.map((name, index) => (
+          <option key={name} value={index + 1}>
+            {name}
+          </option>
+        ))}
+      </select>
+      <select
+        id={`${id}-day`}
+        aria-label={`روز ${label}`}
+        disabled={disabled}
+        value={draft.jd}
+        onChange={(e) => update({ ...draft, jd: e.target.value })}
+      >
+        <option value="">روز</option>
+        {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => (
+          <option key={d} value={d}>
+            {d.toLocaleString('fa-IR', { useGrouping: false })}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        className="jalali-today"
+        disabled={disabled}
+        onClick={() => update({ ...(jalaliParts(today()) || {}) })}
+      >
+        امروز
+      </button>
+      {value && (
+        <button
+          type="button"
+          className="jalali-clear"
+          disabled={disabled}
+          onClick={() => onChange('')}
+        >
+          پاک کردن
+        </button>
+      )}
+      {value && <small className="field-hint">میلادی: {value}</small>}
+    </div>
+  );
+}
+export function ErrorReportButton() {
+  const [open, setOpen] = useState(false),
+    [message, setMessage] = useState(''),
+    [busy, setBusy] = useState(false),
+    [result, setResult] = useState(null),
+    [error, setError] = useState(null);
+  const send = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await api('/support/report', {
+        method: 'POST',
+        body: {
+          message,
+          url: window.location.pathname,
+          stack: String(window.__madresehyarLastError || ''),
+        },
+      });
+      setResult(response.code);
+      setMessage('');
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <button type="button" className="support-button" onClick={() => setOpen(true)}>
+        <Icon name="CircleHelp" size={17} />
+        گزارش مشکل
+      </button>
+      {open && (
+        <Modal
+          title="گزارش مشکل به پشتیبانی"
+          subtitle="توضیح کوتاه بنویسید؛ یک کد پیگیری دریافت می‌کنید."
+          onClose={() => {
+            setOpen(false);
+            setResult(null);
+          }}
+        >
+          <div className="modal-body">
+            {result ? (
+              <div className="confirm-icon">
+                <Icon name="CheckCircle2" size={28} />
+                <p>
+                  گزارش ثبت شد. کد پیگیری: <strong dir="ltr">{result}</strong>
+                </p>
+              </div>
+            ) : (
+              <>
+                <label className="form-field full-width">
+                  شرح مشکل
+                  <textarea
+                    rows={4}
+                    value={message}
+                    maxLength={1000}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="چه اتفاقی افتاد و انتظار داشتید چه شود؟"
+                  />
+                </label>
+                {error && <ErrorBox error={error} />}
+              </>
+            )}
+          </div>
+          <footer className="modal-footer">
+            {!result && (
+              <Button
+                loading={busy}
+                disabled={message.trim().length < 4}
+                onClick={send}
+                icon="Send"
+              >
+                ارسال گزارش
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setOpen(false);
+                setResult(null);
+              }}
+            >
+              بستن
+            </Button>
+          </footer>
+        </Modal>
+      )}
+    </>
   );
 }
 export function Toasts({ toasts, dismiss }) {

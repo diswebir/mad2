@@ -1,4 +1,7 @@
 import { schoolDate } from '../../shared/dates';
+// Vite bakes BASE_URL from BASE_PATH at build time; every request follows the mount point.
+export const baseUrl = import.meta.env.BASE_URL || '/';
+const withBase = (path) => `${baseUrl.replace(/\/$/, '')}${path}`;
 let csrfToken = null;
 export const setCsrf = (value) => {
   csrfToken = value;
@@ -17,7 +20,7 @@ export async function api(path, options = {}) {
     ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
     ...options.headers,
   };
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(withBase(`/api${path}`), {
     credentials: 'same-origin',
     ...rest,
     headers,
@@ -29,7 +32,7 @@ export async function api(path, options = {}) {
   return data;
 }
 export async function download(path, filename) {
-  const response = await fetch(`/api${path}`, { credentials: 'same-origin' });
+  const response = await fetch(withBase(`/api${path}`), { credentials: 'same-origin' });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     throw new ApiError(data.error || 'دانلود ناموفق بود.', response.status);
@@ -69,6 +72,7 @@ export const timeFa = (value) =>
   value
     ? new Intl.DateTimeFormat('fa-IR', { hour: '2-digit', minute: '2-digit' }).format(asDate(value))
     : '—';
+export const absoluteUrl = (path) => withBase(path);
 export const query = (object) =>
   new URLSearchParams(
     Object.fromEntries(

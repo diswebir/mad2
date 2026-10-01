@@ -10,6 +10,8 @@ import {
   positiveId,
   assertFileContext,
   assertRevision,
+  teachesSubject,
+  teacherClasses,
 } from '../security.js';
 export function educationRouter(db, security) {
   const router = Router();
@@ -20,6 +22,100 @@ export function educationRouter(db, security) {
     assertScope(db, 'assignments', row, req.user);
     return row;
   };
+  // One screen, one class: a teacher enters a whole exam at once instead of 30 forms.
+  router.post('/grades/bulk', security.feature('grades.bulk'), (req, res) => {
+    const data = parse(
+      z.object({
+        class_id: z.number().int().positive(),
+        subject_id: z.number().int().positive(),
+        title: z.string().trim().min(2).max(120),
+        max_score: z.number().min(1).max(100).default(20),
+        coefficient: z.number().min(0.1).max(10).default(1),
+        term: z.string().max(40).optional().default(''),
+        scores: z
+          .array(
+            z.object({
+              student_id: z.number().int().positive(),
+              score: z.number().min(0),
+              notes: z.string().max(500).optional().default(''),
+            }),
+          )
+          .min(1)
+          .max(80),
+      }),
+      req.body,
+    );
+    assert(
+      ['admin', 'teacher'].includes(req.user.role),
+      403,
+      'ثبت گروهی نمره فقط برای مدیر و معلم مجاز است.',
+    );
+    const cls = db.get('SELECT * FROM classes WHERE id=?', [data.class_id]);
+    assert(cls, 404, 'کلاس پیدا نشد.');
+    assertScope(db, 'classes', cls, req.user);
+    assert(
+      teachesSubject(db, req.user, cls.id, data.subject_id),
+      403,
+      'این درس در برنامهٔ هفتگی شما برای این کلاس نیست.',
+    );
+    const seen = new Set();
+    let created = 0;
+    let updated = 0;
+    db.transaction(() => {
+      for (const entry of data.scores) {
+        assert(!seen.has(entry.student_id), 422, 'دانش‌آموز تکراری در فهرست نمرات.');
+        seen.add(entry.student_id);
+        assert(entry.score <= data.max_score, 422, 'نمره‌ای بیشتر از نمرهٔ کامل ثبت شده است.');
+        const student = db.get('SELECT * FROM students WHERE id=?', [entry.student_id]);
+        assert(student, 422, 'دانش‌آموز پیدا نشد.');
+        assert(
+          student.class_id === cls.id && student.status === 'active',
+          422,
+          'دانش‌آموز باید عضو فعال همین کلاس باشد.',
+        );
+        const existing = db.get(
+          'SELECT * FROM grades WHERE student_id=? AND subject_id=? AND title=? AND class_id=?',
+          [student.id, data.subject_id, data.title, cls.id],
+        );
+        if (existing) {
+          db.run(
+            "UPDATE grades SET score=?,max_score=?,coefficient=?,notes=?,revision=revision+1,updated_at=datetime('now') WHERE id=?",
+            [entry.score, data.max_score, data.coefficient, entry.notes, existing.id],
+          );
+          updated += 1;
+        } else {
+          db.insert('grades', {
+            title: data.title,
+            student_id: student.id,
+            subject_id: data.subject_id,
+            class_id: cls.id,
+            score: entry.score,
+            max_score: data.max_score,
+            coefficient: data.coefficient,
+            term: data.term,
+            notes: entry.notes,
+            author_id: req.user.id,
+          });
+          created += 1;
+        }
+        for (const uid of [student.user_id, student.guardian_user_id].filter(Boolean))
+          notify(
+            db,
+            uid,
+            'نمره جدید ثبت شد',
+            `${data.title}: ${entry.score} از ${data.max_score}`,
+            '/education?tab=grades',
+            'education',
+          );
+      }
+      log(db, req.user, 'grades.bulk', 'classes', cls.id, {
+        title: data.title,
+        created,
+        updated,
+      });
+    });
+    res.status(201).json({ ok: true, created, updated, count: data.scores.length });
+  });
   router.get('/:id/submissions', security.feature('assignments.view'), (req, res) => {
     const row = assignment(req);
     assert(

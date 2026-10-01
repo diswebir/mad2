@@ -135,7 +135,7 @@ export default function Auth() {
           </p>
         </div>
         <footer className="auth-footer">
-          <span>مدرسه‌یار · نسخه ۱.۰.۰</span>
+          <span>مدرسه‌یار · نسخه ۱.۱.۰</span>
           <Link to="/install">
             راهنمای راه‌اندازی
             <Icon name="ArrowUpLeft" size={14} />
@@ -172,7 +172,7 @@ export default function Auth() {
             یادگیری بهتر
           </span>
         </div>
-        <span className="auth-visual-bottom">۱۳۴ قابلیت · ۱۶ ماژول · یک فضای یکپارچه</span>
+        <span className="auth-visual-bottom">۱۸۸ قابلیت · ۱۷ ماژول · یک فضای یکپارچه</span>
       </section>
       {help && (
         <Modal title="کمک برای ورود به حساب" onClose={() => setHelp(false)}>

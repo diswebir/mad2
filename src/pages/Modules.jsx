@@ -73,7 +73,7 @@ export default function Modules() {
       >
         <Badge tone="purple" className="version-badge">
           <Icon name="Sparkles" size={16} />
-          نسخه ۱.۰ · {fa(config.feature_count)} قابلیت
+          نسخه ۱.۱ · {fa(config.feature_count)} قابلیت
         </Badge>
         <Button variant="secondary" icon="CircleHelp" onClick={() => setHelp(true)}>
           راهنمای ماژول‌ها
@@ -313,10 +313,11 @@ export default function Modules() {
               </p>
             </section>
             <section>
-              <h3>۱۳۴ قابلیت چطور شمرده شده‌اند؟</h3>
+              <h3>۱۸۸ قابلیت چطور شمرده شده‌اند؟</h3>
               <p>
-                ۱۰۰ عملیات مستقل مشاهده، ثبت، ویرایش و حذف ایمن در ۲۵ نوع پرونده، به‌علاوه ۳۴ قابلیت
-                حضور، تیکت، تکلیف، گزارش و مدیریت. فهرست کامل در docs/FEATURES.md قرار دارد.
+                ۱۳۲ عملیات مستقل مشاهده، ثبت، ویرایش و حذف ایمن در ۳۳ نوع پرونده، به‌علاوه ۵۶ قابلیت
+                حضور، تیکت، تکلیف، مالی، کتابخانه، ملاقات، تحلیل و مدیریت. فهرست کامل در
+                docs/FEATURES.md قرار دارد.
               </p>
             </section>
           </div>

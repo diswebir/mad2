@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { roles } from '../../shared/catalog';
 import { useApp, useApi } from '../context';
 import {
+  absoluteUrl,
   api,
   dateFa,
   describeError,
@@ -444,7 +445,7 @@ export default function Tickets() {
                         {m.file_id && can('tickets.attachments') && (
                           <a
                             className="message-attachment"
-                            href={`/api/files/${m.file_id}`}
+                            href={absoluteUrl(`/api/files/${m.file_id}`)}
                             target="_blank"
                             rel="noreferrer"
                           >

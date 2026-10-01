@@ -47,7 +47,7 @@ export async function openDatabase({
   const SQL = await initSqlJs({
     locateFile: (file) => path.join(path.dirname(require.resolve('sql.js')), file),
   });
-  const raw = new SQL.Database(
+  let raw = new SQL.Database(
     !memory && fs.existsSync(filename) ? fs.readFileSync(filename) : undefined,
   );
   raw.run('PRAGMA foreign_keys = ON;');
@@ -114,6 +114,59 @@ export async function openDatabase({
         fs.closeSync(fd);
       }
       fs.renameSync(temp, filename);
+    },
+    // Opens candidate bytes in a throw-away database to prove they are a usable backup
+    // before the live data is replaced.
+    validateBackup(bytes) {
+      let probe;
+      try {
+        probe = new SQL.Database(bytes);
+        const required = ['users', 'settings', 'students'];
+        const tables = new Set(
+          (() => {
+            const stmt = probe.prepare("SELECT name FROM sqlite_master WHERE type='table'");
+            const names = [];
+            while (stmt.step()) names.push(stmt.getAsObject().name);
+            stmt.free();
+            return names;
+          })(),
+        );
+        for (const table of required)
+          if (!tables.has(table)) return { ok: false, reason: `جدول ${table} یافت نشد` };
+        const settings = probe.exec('SELECT key,value FROM settings');
+        const map = new Map(
+          (settings[0]?.values || []).map(([key, value]) => [key, JSON.parse(value)]),
+        );
+        if (!map.get('installed')) return { ok: false, reason: 'پایگاه‌داده نصب‌شده نیست' };
+        const version = Number(map.get('schema_version') || 1);
+        if (version > 3)
+          return { ok: false, reason: `نسخهٔ طرح (${version}) از این نسخهٔ نرم‌افزار جدیدتر است` };
+        const users = probe.exec("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1");
+        if (!users[0]?.values?.[0]?.[0])
+          return { ok: false, reason: 'هیچ مدیر فعالی در فایل پشتیبان نیست' };
+        return { ok: true, tables: [...tables].length, schema_version: version };
+      } catch (error) {
+        return { ok: false, reason: String(error.message || error).slice(0, 200) };
+      } finally {
+        try {
+          probe?.close();
+        } catch {
+          /* already closed */
+        }
+      }
+    },
+    import(bytes) {
+      const next = new SQL.Database(bytes);
+      next.run('PRAGMA foreign_keys = ON;');
+      const previous = raw;
+      raw = next;
+      try {
+        previous.close();
+      } catch {
+        /* the old in-memory copy is dropped */
+      }
+      this.persist();
+      return true;
     },
     setting(key, fallback = null) {
       const row = this.get('SELECT value FROM settings WHERE key = ?', [key]);
@@ -213,6 +266,9 @@ export async function openDatabase({
       CREATE INDEX IF NOT EXISTS idx_tickets_recipient ON tickets(recipient_id,status);
       CREATE TABLE IF NOT EXISTS ticket_messages (id INTEGER PRIMARY KEY, ticket_id INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE, sender_id INTEGER NOT NULL REFERENCES users(id), body TEXT NOT NULL, file_id INTEGER REFERENCES files(id), created_at TEXT NOT NULL DEFAULT (datetime('now')));
       CREATE TABLE IF NOT EXISTS submissions (id INTEGER PRIMARY KEY, assignment_id INTEGER NOT NULL REFERENCES assignments(id) ON DELETE CASCADE, student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE, body TEXT NOT NULL, file_id INTEGER REFERENCES files(id), score REAL, feedback TEXT, submitted_at TEXT NOT NULL DEFAULT (datetime('now')), reviewed_at TEXT, UNIQUE(assignment_id,student_id));
+      CREATE TABLE IF NOT EXISTS outbox (id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, channel TEXT NOT NULL CHECK(channel IN ('sms','email')), target TEXT, title TEXT NOT NULL, body TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'queued' CHECK(status IN ('queued','sent','failed','skipped')), attempts INTEGER NOT NULL DEFAULT 0, error TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), sent_at TEXT);
+      CREATE INDEX IF NOT EXISTS idx_outbox_status ON outbox(status, id);
+      CREATE TABLE IF NOT EXISTS error_reports (id INTEGER PRIMARY KEY, code TEXT NOT NULL UNIQUE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, message TEXT NOT NULL, stack TEXT, url TEXT, user_agent TEXT, status TEXT NOT NULL DEFAULT 'new' CHECK(status IN ('new','seen','resolved')), note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')));
     `);
     for (const mod of moduleDefs)
       db.run('INSERT OR IGNORE INTO modules(id,enabled) VALUES (?,1)', [mod.id]);
@@ -254,7 +310,7 @@ export async function openDatabase({
        (EXISTS(SELECT 1 FROM documents WHERE file_id=files.id)) +
        (EXISTS(SELECT 1 FROM assignments WHERE file_id=files.id)) +
        (EXISTS(SELECT 1 FROM submissions WHERE file_id=files.id)))=1`);
-    db.setSetting('schema_version', 2);
+    db.setSetting('schema_version', 3);
   });
   return db;
 }
