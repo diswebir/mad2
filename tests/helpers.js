@@ -6,12 +6,12 @@ import { openDatabase } from '../server/database.js';
 import { seedDemo } from '../server/seed.js';
 import { createApp } from '../server/app.js';
 
-export async function auditFixture({ seed = true } = {}) {
+export async function auditFixture({ seed = true, license = null } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'madresehyar-audit-'));
   fs.mkdirSync(path.join(dir, 'uploads'), { recursive: true });
   const db = await openDatabase({ dataDir: dir, memory: true });
   if (seed) seedDemo(db);
-  const server = createApp(db, { demo: true }).listen(0, '127.0.0.1');
+  const server = createApp(db, { demo: true, license }).listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
   const url = `http://127.0.0.1:${server.address().port}`;
   let index = 1;

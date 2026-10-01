@@ -22,7 +22,7 @@ export function installationRouter(db, security, { installToken, demo }) {
       demo,
       version: '1.1.0',
       features: featureDefs.length,
-      modules: moduleDefs,
+      modules: moduleDefs.map((m) => ({ ...m, entitled: security.entitledModule(m.id) })),
       requirements: [
         { name: 'Node.js ۲۰.۱۹+ یا ۲۲.۱۲+', value: process.versions.node, passed: supportedNode() },
         {

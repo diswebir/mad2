@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { openDatabase } from './database.js';
+import { loadEntitlement, licenseReasonLabel } from '../shared/license.js';
 import { seedDemo } from './seed.js';
 import { createApp } from './app.js';
 if (!supportedNode()) throw new Error('Node.js 20.19+ or 22.12+ is required.');
@@ -25,7 +26,13 @@ if (!db.setting('installed')) {
   if (installToken.length < 24)
     throw new Error('INSTALL_TOKEN must contain at least 24 characters.');
 }
-const app = createApp(db, { demo, installToken });
+const license = loadEntitlement({ dir: db.dir });
+console.log(
+  license.enforced
+    ? `License: ${license.valid ? 'valid' : 'not active'} — ${licenseReasonLabel(license.reason)} (${license.modules.length} modules)`
+    : 'License: open mode (LICENSE_MODE=off) — all modules available',
+);
+const app = createApp(db, { demo, installToken, license });
 const port = Number(process.env.PORT) || (process.env.NODE_ENV === 'development' ? 3001 : 3000);
 const server = app.listen(port, process.env.HOST || '0.0.0.0', () =>
   console.log(`مدرسه‌یار is ready on port ${port}${demo ? ' (demo mode)' : ''}`),

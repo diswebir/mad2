@@ -17,6 +17,12 @@
     "test:e2e": "playwright test",
     "features": "node scripts/features.mjs",
     "package:cpanel": "npm run build && node scripts/package.mjs",
+    "package:demo": "npm run build && node scripts/package.mjs --demo",
+    "license": "node scripts/license.mjs",
+    "license:list": "node scripts/license.mjs list",
+    "license:keygen": "node scripts/license.mjs keygen",
+    "license:issue": "node scripts/license.mjs issue",
+    "license:inspect": "node scripts/license.mjs inspect",
     "admin:reset": "node scripts/reset-admin.mjs",
     "format": "prettier --write src server shared scripts tests docs *.js *.json README.md app.cjs",
     "format:check": "prettier --check src server shared scripts tests docs *.js *.json README.md app.cjs"

@@ -79,6 +79,16 @@ export default function Modules() {
           راهنمای ماژول‌ها
         </Button>
       </PageHeader>
+      {config.license?.mode === 'on' && (
+        <div className={`info-box license-banner ${config.license.valid ? '' : 'license-warning'}`}>
+          <Icon name={config.license.valid ? 'BadgeCheck' : 'AlertTriangle'} size={19} />
+          <span>
+            {config.license.valid
+              ? `لایسنس ${config.license.customer || 'این مدرسه'} · سریال ${config.license.license_id || '—'} · ${fa(config.license.modules.length)} ماژول مجاز`
+              : 'برای این نصب لایسنس معتبر ثبت نشده است؛ فقط ماژول‌های پایه فعال‌اند. برای خرید ماژول با فروشنده تماس بگیرید.'}
+          </span>
+        </div>
+      )}
       <div className="module-stats">
         <div>
           <span className="stat-icon tone-purple">
@@ -140,13 +150,21 @@ export default function Modules() {
           const fs = features.filter((f) => f.module === m.id);
           const enabled = fs.filter((f) => f.enabled).length;
           return (
-            <article className={`module-card ${!m.enabled ? 'module-disabled' : ''}`} key={m.id}>
+            <article
+              className={`module-card ${!m.enabled ? 'module-disabled' : ''} ${m.entitled === false ? 'module-not-licensed' : ''}`}
+              key={m.id}
+            >
               <div className="module-card-top">
                 <span className={`module-card-icon tone-${m.color}`}>
                   <Icon name={m.icon} size={25} />
                 </span>
                 <div>
-                  {m.locked ? (
+                  {m.entitled === false ? (
+                    <Badge tone="orange">
+                      <Icon name="ShoppingCart" size={12} />
+                      خریدنی
+                    </Badge>
+                  ) : m.locked ? (
                     <Badge tone="neutral">
                       <Icon name="LockKeyhole" size={12} />
                       هسته سامانه
@@ -164,8 +182,11 @@ export default function Modules() {
               <h2>{m.name}</h2>
               <p>{m.description}</p>
               <div className="module-card-meta">
-                <Badge tone={m.enabled ? 'green' : 'neutral'} dot>
-                  {m.enabled ? 'فعال' : 'غیرفعال'}
+                <Badge
+                  tone={m.entitled === false ? 'neutral' : m.enabled ? 'green' : 'neutral'}
+                  dot
+                >
+                  {m.entitled === false ? 'در لایسنس نیست' : m.enabled ? 'فعال' : 'غیرفعال'}
                 </Badge>
                 <span>
                   {fa(m.enabled ? enabled : 0)} از {fa(fs.length)} قابلیت فعال

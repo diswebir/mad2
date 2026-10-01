@@ -46,6 +46,12 @@ export function settingsRouter(db, security) {
   router.patch('/modules/:id', security.feature('settings.modules'), (req, res) => {
     const mod = moduleDefs.find((m) => m.id === req.params.id);
     assert(mod, 404, 'ماژول پیدا نشد.');
+    assert(
+      security.entitledModule(mod.id),
+      403,
+      'این ماژول در لایسنس این مدرسه نیست؛ برای خرید و افزودن آن با پشتیبانی تماس بگیرید.',
+      'LICENSE_REQUIRED',
+    );
     assert(!mod.locked, 409, 'تنظیمات هسته برای جلوگیری از قفل شدن مدیریت همیشه فعال است.');
     const { enabled } = parse(z.object({ enabled: z.boolean() }), req.body);
     db.transaction(() => {
@@ -57,6 +63,12 @@ export function settingsRouter(db, security) {
   router.patch('/features/:id', security.feature('settings.modules'), (req, res) => {
     const feature = featureDefs.find((f) => f.id === req.params.id);
     assert(feature, 404, 'قابلیت پیدا نشد.');
+    assert(
+      security.entitled(feature.id),
+      403,
+      'این قابلیت در لایسنس این مدرسه نیست؛ برای خرید و افزودن آن با پشتیبانی تماس بگیرید.',
+      'LICENSE_REQUIRED',
+    );
     assert(
       !feature.locked,
       409,

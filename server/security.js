@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { moduleDefs, featureDefs, resourceDefs } from '../shared/catalog.js';
 import { schoolDate } from '../shared/dates.js';
+import { featureEntitled, moduleEntitled, entitlementSummary } from '../shared/license.js';
 // messaging.js imports notificationFeature from this module, so it is wired lazily.
 let queueOutbox = null;
 export const setOutboxQueue = (fn) => {
@@ -106,8 +107,13 @@ export const normalizeBase = (value = '') => {
   if (!raw || raw === '/') return '';
   return `/${raw.replace(/^\/+|\/+$/g, '')}`;
 };
-export function makeSecurity(db, { basePath } = {}) {
+export function makeSecurity(db, { basePath, license = null } = {}) {
   const security = { basePath: normalizeBase(basePath ?? process.env.BASE_PATH) };
+  // «لایسنس» تعیین می‌کند کدام ماژول‌های فروخته‌شده روی این نصب مجاز هستند.
+  // بدون لایسنس (LICENSE_MODE=off یا نسخهٔ خودمیزبان) همه‌چیز مجاز است.
+  security.license = license;
+  security.entitled = (featureId) => featureEntitled(license, featureId);
+  security.entitledModule = (moduleId) => moduleEntitled(license, moduleId);
   const securityPath = (req) => security.basePath || normalizeBase(req?.basePath);
 
   const enabled = (feature) => {
@@ -123,13 +129,17 @@ export function makeSecurity(db, { basePath } = {}) {
     modules: moduleDefs.map((m) => ({
       ...m,
       enabled: !!db.get('SELECT enabled FROM modules WHERE id=?', [m.id])?.enabled,
+      entitled: moduleEntitled(license, m.id),
     })),
     features: featureDefs.map((f) => ({
       ...f,
       enabled: !!db.get('SELECT enabled FROM features WHERE id=?', [f.id])?.enabled,
+      entitled: featureEntitled(license, f.id),
     })),
     school: db.setting('school', {}),
     feature_count: featureDefs.length,
+    entitled_count: featureDefs.filter((f) => featureEntitled(license, f.id)).length,
+    license: license ? entitlementSummary(license) : null,
   });
   const loadSession = (req, _res, next) => {
     const token = req.cookies?.school_session;
@@ -185,6 +195,12 @@ export function makeSecurity(db, { basePath } = {}) {
     next();
   };
   const feature = (id) => (req, _res, next) => {
+    assert(
+      security.entitled(id),
+      403,
+      'این بخش در لایسنس این مدرسه فعال نشده است؛ برای خرید ماژول با پشتیبانی تماس بگیرید.',
+      'LICENSE_REQUIRED',
+    );
     assert(
       enabled(id),
       403,

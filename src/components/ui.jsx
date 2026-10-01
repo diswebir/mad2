@@ -101,6 +101,8 @@ import {
   IdCard,
   UserCheck,
   WalletCards,
+  ShoppingCart,
+  AlertTriangle,
 } from 'lucide-react';
 const icons = {
   LayoutDashboard,
@@ -201,6 +203,8 @@ const icons = {
   IdCard,
   UserCheck,
   WalletCards,
+  ShoppingCart,
+  AlertTriangle,
 };
 export function Icon({ name, size = 20, ...props }) {
   const Component = icons[name] || Circle;

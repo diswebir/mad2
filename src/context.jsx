@@ -184,7 +184,11 @@ export function AppProvider({ children }) {
     (id) => featureAvailable(config, session?.user?.role, id),
     [config, session],
   );
-  const moduleOn = (id) => !!config?.modules.find((m) => m.id === id)?.enabled;
+  // ماژول وقتی «روشن» است که هم مدیر فعالش کرده باشد و هم در لایسنس خریداری شده باشد.
+  const moduleOn = (id) => {
+    const module = config?.modules.find((m) => m.id === id);
+    return !!module?.enabled && module.entitled !== false;
+  };
   return (
     <AppContext.Provider
       value={{

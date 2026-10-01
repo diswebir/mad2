@@ -1,5 +1,7 @@
 # نصب مدرسه‌یار روی cPanel
 
+> **راهنمای گام‌به‌گام نصب دمو و نصب واقعی:** [docs/CPANEL-INSTALL.md](CPANEL-INSTALL.md) — این سند مرجع کامل تنظیمات، پشتیبان‌گیری، مهاجرت و عیب‌یابی است.
+
 ## ۱. پیش‌نیازهای ضروری
 
 - هاست دارای **Setup Node.js App** (CloudLinux Node.js Selector) یا Application Manager / Passenger باشد. روی پلن صرفاً PHP این برنامه اجرا نمی‌شود.

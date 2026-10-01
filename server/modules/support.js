@@ -3,6 +3,7 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import { moduleDefs, featureDefs } from '../../shared/catalog.js';
+import { entitlementSummary, licenseReasonLabel } from '../../shared/license.js';
 import { assert, parse, log, pageNumber, positiveId } from '../security.js';
 
 const startedAt = Date.now();
@@ -36,6 +37,12 @@ export function supportRouter(db, security) {
       memory_mb: Math.round((process.memoryUsage().rss / 1024 / 1024) * 10) / 10,
       capabilities: featureDefs.length,
       modules: moduleDefs.length,
+      license: security.license
+        ? {
+            ...entitlementSummary(security.license),
+            reason_label: licenseReasonLabel(security.license.reason),
+          }
+        : null,
       records: Object.fromEntries(
         ['students', 'teachers', 'classes', 'users', 'attendance', 'tickets', 'outbox'].map(
           (table) => [table, count(table)],

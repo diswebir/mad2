@@ -40,10 +40,11 @@ export function createApp(
     installToken = '',
     staticDir = path.join(root, 'dist'),
     basePath = process.env.BASE_PATH,
+    license = null,
   } = {},
 ) {
   const app = express(),
-    security = makeSecurity(db, { basePath }),
+    security = makeSecurity(db, { basePath, license }),
     base = normalizeBasePath(basePath),
     mountedBase = base || '/';
   security.basePath = base;

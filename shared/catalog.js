@@ -1225,10 +1225,13 @@ for (const feature of featureDefs) {
 }
 export function featureAvailable(config, role, id) {
   const feature = config?.features.find((item) => item.id === id);
+  const owner = config?.modules.find((module) => module.id === feature?.module);
   return (
     !!feature?.enabled &&
+    feature.entitled !== false &&
+    owner?.entitled !== false &&
     feature.roles.includes(role) &&
-    !!config.modules.find((module) => module.id === feature.module)?.enabled &&
+    !!owner?.enabled &&
     feature.requires.every((dependency) => featureAvailable(config, role, dependency))
   );
 }

@@ -288,6 +288,19 @@ export function StatusPanel() {
           <strong>{fa(data.features_disabled)}</strong>
           <span>قابلیت خاموش‌شده</span>
         </div>
+        {data.license && data.license.mode === 'on' && (
+          <div className="status-card">
+            <Icon name={data.license.valid ? 'BadgeCheck' : 'AlertTriangle'} size={22} />
+            <strong>
+              {data.license.valid ? data.license.customer || 'لایسنس فعال' : 'بدون لایسنس'}
+            </strong>
+            <span>
+              {data.license.valid
+                ? `سریال ${data.license.license_id || '—'} · ${fa(data.license.modules.length)} ماژول`
+                : data.license.reason_label}
+            </span>
+          </div>
+        )}
       </div>
       <ul className="check-list">
         {data.checks.map((check) => (

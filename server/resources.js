@@ -410,6 +410,12 @@ export function resourceRouter(db, security) {
       'شما اجازه انجام این عملیات را ندارید.',
     );
     assert(
+      security.entitled(`${resource}.${action}`),
+      403,
+      'این بخش در لایسنس این مدرسه فعال نشده است؛ برای خرید ماژول با پشتیبانی تماس بگیرید.',
+      'LICENSE_REQUIRED',
+    );
+    assert(
       security.enabled(`${resource}.${action}`),
       403,
       'این قابلیت یا پیش‌نیاز مشاهده آن توسط مدیر مدرسه غیرفعال شده است.',

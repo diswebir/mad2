@@ -8322,3 +8322,26 @@
     margin: 0;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   فروش ماژولار: نشانه‌گذاری ماژول‌های خریدنی روی کارت‌های صفحهٔ ماژول‌ها
+--------------------------------------------------------------------------- */
+.license-banner {
+  margin-bottom: 16px;
+}
+.license-banner.license-warning {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #9a3412;
+}
+.module-card.module-not-licensed {
+  border-style: dashed;
+  opacity: 0.92;
+}
+.module-card.module-not-licensed .module-card-icon {
+  filter: grayscale(0.55);
+}
+.module-card.module-not-licensed .module-card-footer button {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
