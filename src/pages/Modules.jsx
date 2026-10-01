@@ -27,7 +27,18 @@ export default function Modules() {
   const admin = user.role === 'admin';
   const features = config.features,
     modules = config.modules;
-  const effective = features.filter((f) => featureAvailable(config, user.role, f.id)).length;
+  // Count capabilities that are live for the school, not only for the signed-in role,
+  // otherwise admin-only dashboards would look as if student/teacher features were off.
+  const featureOn = (id) => {
+    const feature = features.find((item) => item.id === id);
+    return (
+      !!feature?.enabled &&
+      !!modules.find((module) => module.id === feature.module)?.enabled &&
+      feature.requires.every(featureOn)
+    );
+  };
+  const effective = features.filter((f) => featureOn(f.id)).length;
+  const ownEffective = features.filter((f) => featureAvailable(config, user.role, f.id)).length;
   const visible = modules.filter(
     (m) =>
       (filter === 'all' ||
@@ -88,7 +99,9 @@ export default function Modules() {
             <Icon name="Sparkles" size={23} />
           </span>
           <strong>{fa(effective)}</strong>
-          <span>قابلیت فعال</span>
+          <span>
+            قابلیت فعال {ownEffective !== effective ? `(${fa(ownEffective)} برای نقش شما)` : ''}
+          </span>
         </div>
         <div>
           <span className="stat-icon tone-orange">

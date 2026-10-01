@@ -438,6 +438,7 @@ function Audit() {
     featureDefs.find((f) => f.id === action)?.name ||
     {
       'auth.login': 'ورود به سامانه',
+      'auth.login_failed': 'تلاش ناموفق ورود',
       'install.demo': 'آماده‌سازی داده دمو',
       'install.complete': 'تکمیل نصب',
       'files.upload': 'بارگذاری فایل',

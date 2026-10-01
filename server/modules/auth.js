@@ -10,6 +10,7 @@ import {
   hashToken,
   log,
   accountUsable,
+  HttpError,
 } from '../security.js';
 import { demoAccounts } from '../seed.js';
 export function authRouter(db, security, demo) {
@@ -60,11 +61,11 @@ export function authRouter(db, security, demo) {
     const hash =
       user?.password_hash || '$2b$10$7lKDOIlLoGWthshSMaJCMOxe/qsidTgpomOdDOzmSKJEfl7KM3bFO';
     const ok = bcrypt.compareSync(password, hash);
-    assert(
-      user && ok && accountUsable(db, user),
-      401,
-      'نام کاربری یا رمز عبور صحیح نیست، یا حساب غیرفعال است.',
-    );
+    if (!(user && ok && accountUsable(db, user))) {
+      // Failed attempts belong in the audit trail so the principal can spot brute force.
+      log(db, user || null, 'auth.login_failed', 'users', user?.id ?? null, username.trim());
+      throw new HttpError(401, 'نام کاربری یا رمز عبور صحیح نیست، یا حساب غیرفعال است.');
+    }
     if (req.session) db.run('DELETE FROM sessions WHERE id=?', [req.session.id]);
     log(db, user, 'auth.login');
     res.json(security.session(req, res, user));

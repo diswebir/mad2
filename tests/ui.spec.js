@@ -482,3 +482,27 @@ test('attendance keeps guardian numbers private from members and fits small scre
   await expect(page.locator('.attendance-table')).not.toContainText('0912');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('attendance defaults to a real class before the first save', async ({ page }) => {
+  const scoped = [];
+  page.on('request', (request) => {
+    if (request.url().includes('/api/attendance?') && !request.url().includes('/export'))
+      scoped.push(request.url());
+  });
+  await dashboard(page);
+  await page.goto('/attendance');
+  await expect(page.locator('.attendance-table tbody tr').first()).toBeVisible();
+  await page.waitForFunction(
+    () => document.querySelector('select[aria-label="انتخاب کلاس"]')?.value !== '',
+  );
+  const classValue = await page.locator('select[aria-label="انتخاب کلاس"]').inputValue();
+  expect(classValue).not.toBe('');
+  expect(scoped.every((url) => new URL(url).searchParams.get('class_id'))).toBe(true);
+  await page
+    .locator('.attendance-table tbody tr')
+    .first()
+    .getByRole('button', { name: 'غایب' })
+    .click();
+  await page.getByRole('button', { name: /ذخیره تغییرات/ }).click();
+  await expect(page.locator('.toast-container')).toContainText('ذخیره شد');
+});

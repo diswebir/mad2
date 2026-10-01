@@ -1296,7 +1296,16 @@ export default function Resources({ moduleId, embedded = false }) {
     if (result?.account) setAccount(result.account);
   };
   const erase = async () => {
-    await api(`/entities/${selected}/${remove.id}`, { method: 'DELETE', body: {} });
+    try {
+      await api(`/entities/${selected}/${remove.id}`, {
+        method: 'DELETE',
+        body: { revision: remove.revision },
+      });
+    } catch (e) {
+      // A conflict means the row changed or gained dependents; reload before retrying.
+      refresh();
+      throw new Error(describeError(e));
+    }
     refresh();
     await refreshLookups();
     if (detail?.id === remove.id) closeDetail();

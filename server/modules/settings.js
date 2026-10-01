@@ -174,19 +174,23 @@ export function settingsRouter(db, security) {
       res.json({ username: user.username, temporary_password });
     },
   );
-  router.post('/accounts/create/:resource/:id', (req, res) => {
-    assert(['students', 'teachers'].includes(req.params.resource), 404, 'نوع حساب معتبر نیست.');
-    const row = db.get(`SELECT * FROM "${req.params.resource}" WHERE id=?`, [
-      positiveId(req.params.id),
-    ]);
-    assert(row, 404, 'پرونده پیدا نشد.');
-    let account;
-    db.transaction(() => {
-      account = createAccount(db, req.params.resource, row, security);
-      log(db, req.user, `${req.params.resource}.account`, req.params.resource, row.id);
-    });
-    res.status(201).json(account);
-  });
+  router.post(
+    '/accounts/create/:resource/:id',
+    security.feature('settings.accounts'),
+    (req, res) => {
+      assert(['students', 'teachers'].includes(req.params.resource), 404, 'نوع حساب معتبر نیست.');
+      const row = db.get(`SELECT * FROM "${req.params.resource}" WHERE id=?`, [
+        positiveId(req.params.id),
+      ]);
+      assert(row, 404, 'پرونده پیدا نشد.');
+      let account;
+      db.transaction(() => {
+        account = createAccount(db, req.params.resource, row, security);
+        log(db, req.user, `${req.params.resource}.account`, req.params.resource, row.id);
+      });
+      res.status(201).json(account);
+    },
+  );
   router.get('/backup', security.feature('settings.backup'), (req, res) => {
     log(db, req.user, 'settings.backup');
     res.setHeader(

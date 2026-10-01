@@ -331,6 +331,20 @@ export function businessRules(db, resource, row, id = 0) {
   if (resource === 'payroll')
     assert((row.deductions || 0) <= row.gross, 422, 'کسورات نمی‌تواند از حقوق بیشتر باشد.');
 }
+const familyIds = (db, studentId) => {
+  const student = db.get('SELECT user_id,guardian_user_id FROM students WHERE id=?', [studentId]);
+  return [student?.user_id, student?.guardian_user_id].filter(Boolean);
+};
+const classFamilyIds = (db, classId) => {
+  const ids = new Set();
+  for (const student of db.all(
+    "SELECT user_id,guardian_user_id FROM students WHERE class_id=? AND status='active'",
+    [classId],
+  ))
+    for (const id of [student.user_id, student.guardian_user_id]) if (id) ids.add(id);
+  return [...ids];
+};
+const faNumber = (value) => Number(value || 0).toLocaleString('fa-IR');
 const recalcInvoice = (db, id) => {
   if (!id) return;
   const paid = db.get('SELECT COALESCE(SUM(amount),0) n FROM payments WHERE invoice_id=?', [id]).n;
@@ -579,6 +593,87 @@ export function resourceRouter(db, security) {
       if (resource === 'invoices') {
         recalcInvoice(db, id);
         row = db.get('SELECT * FROM invoices WHERE id=?', [id]);
+      }
+      if (!update && resource === 'payments') {
+        const invoice = db.get('SELECT student_id,title FROM invoices WHERE id=?', [
+          row.invoice_id,
+        ]);
+        if (invoice)
+          for (const uid of familyIds(db, invoice.student_id))
+            notify(
+              db,
+              uid,
+              'پرداخت ثبت شد',
+              `مبلغ ${faNumber(row.amount)} تومان برای «${invoice.title}» ثبت شد.`,
+              '/finance?tab=payments',
+              'info',
+              'payments.view',
+            );
+      }
+      if (!update && resource === 'invoices')
+        for (const uid of familyIds(db, row.student_id))
+          notify(
+            db,
+            uid,
+            'صورتحساب جدید ثبت شد',
+            `${row.title} — مبلغ ${faNumber(row.amount)} تومان، مهلت پرداخت تا ${row.due_date}`,
+            '/finance?tab=invoices',
+            'info',
+            'invoices.view',
+          );
+      if (!update && resource === 'assignments')
+        for (const uid of classFamilyIds(db, row.class_id))
+          notify(
+            db,
+            uid,
+            'تکلیف جدید',
+            `${row.title} — مهلت تحویل ${row.due_date}`,
+            '/education?tab=assignments',
+            'info',
+            'assignments.view',
+          );
+      if (!update && resource === 'exams')
+        for (const uid of classFamilyIds(db, row.class_id))
+          notify(
+            db,
+            uid,
+            'آزمون جدید',
+            `${row.title} — تاریخ ${row.exam_date}`,
+            '/education?tab=exams',
+            'info',
+            'exams.view',
+          );
+      if (resource === 'classes' && row.teacher_id && (!old || old.teacher_id !== row.teacher_id)) {
+        const assigned = db.get('SELECT user_id FROM teachers WHERE id=?', [row.teacher_id]);
+        notify(
+          db,
+          assigned?.user_id,
+          'کلاس به شما تخصیص یافت',
+          `${row.name} به فهرست کلاس‌های شما اضافه شد.`,
+          '/classes',
+          'info',
+          'classes.view',
+        );
+      }
+      if (
+        resource === 'students' &&
+        row.status === 'active' &&
+        row.class_id &&
+        (!old || old.class_id !== row.class_id)
+      ) {
+        const homeroom = db.get(
+          'SELECT user_id FROM teachers WHERE id=(SELECT teacher_id FROM classes WHERE id=?)',
+          [row.class_id],
+        );
+        notify(
+          db,
+          homeroom?.user_id,
+          'دانش‌آموز جدید در کلاس',
+          `${row.first_name} ${row.last_name} به کلاس شما اضافه شد.`,
+          '/classes',
+          'info',
+          'classes.view',
+        );
       }
       if (resource === 'terms' && row.status === 'current') {
         db.run("UPDATE terms SET status='archived' WHERE id!=? AND status='current'", [id]);

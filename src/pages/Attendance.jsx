@@ -46,6 +46,13 @@ export default function Attendance() {
         ),
       );
   }, [data]);
+  // Lookups arrive asynchronously; without this the selector shows a class while the
+  // request is still unscoped (and saving would send an empty class_id).
+  useEffect(() => {
+    const classes = lookups.classes || [];
+    if (!classes.length) return;
+    if (!classId || !classes.some((c) => c.id === Number(classId))) setClassId(classes[0].id);
+  }, [lookups.classes, classId]);
   const changed =
     data?.rows.filter(
       (r) =>
@@ -75,6 +82,10 @@ export default function Attendance() {
       ),
     );
   const save = async () => {
+    if (!classId) {
+      toast('ابتدا کلاس آموزشی را انتخاب کنید.', 'error');
+      return;
+    }
     setBusy(true);
     try {
       const records = changed.map((r) => ({ student_id: r.student_id, ...draft[r.student_id] }));
@@ -139,7 +150,12 @@ export default function Attendance() {
           </Button>
         )}
         {editable && (
-          <Button icon="Check" loading={busy} disabled={!changed.length || loading} onClick={save}>
+          <Button
+            icon="Check"
+            loading={busy}
+            disabled={!changed.length || loading || !classId}
+            onClick={save}
+          >
             ذخیره تغییرات
             {changed.length > 0 && <span className="button-count">{fa(changed.length)}</span>}
           </Button>

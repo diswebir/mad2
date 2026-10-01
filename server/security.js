@@ -507,6 +507,18 @@ export function csv(rows, columns) {
 export function createAccount(db, resource, row, security) {
   assert(['students', 'teachers'].includes(resource), 400, 'نوع حساب معتبر نیست.');
   assert(security.enabled(`${resource}.account`), 403, 'ساخت حساب کاربری غیرفعال است.');
+  // A user row may already reference this record even when the record's own link is stale;
+  // repair the link instead of creating a second login for the same person.
+  const column = resource === 'students' ? 'student_id' : 'teacher_id';
+  const existing = db.get(`SELECT id FROM users WHERE ${column}=? LIMIT 1`, [row.id]);
+  if (existing) {
+    if (row.user_id !== existing.id)
+      db.run(`UPDATE "${resource}" SET user_id=? WHERE id=?`, [existing.id, row.id]);
+    throw new HttpError(
+      409,
+      'این پرونده از قبل حساب کاربری دارد؛ برای تغییر رمز از بازنشانی رمز استفاده کنید.',
+    );
+  }
   assert(!row.user_id, 409, 'این فرد قبلاً حساب کاربری دارد.');
   const temporary_password = randomPassword();
   const base = `${resource === 'students' ? 's' : 't'}${row.national_id || row.id}`;
