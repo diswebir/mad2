@@ -202,7 +202,66 @@ LICENSE_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
 
 ---
 
-## ۵) واقع‌بینانه دربارهٔ کپی و قفل
+## ۵) پیوست فنی: زنجیرهٔ تأیید لایسنس
+
+خلاصهٔ آنچه در کد اتفاق می‌افتد، تا هر وقت لازم شد خودتان بازبینی کنید:
+
+**الف) ساختار فایل لایسنس** (`shared/license.js`):
+
+```json
+{
+  "alg": "ed25519",
+  "payload": {
+    "v": "1.1.0",
+    "id": "MY-1405-5733",
+    "customer": "دبیرستان نمونه",
+    "edition": "custom",
+    "modules": ["finance"],
+    "features": ["settings.messaging"],
+    "issued": "2026-10-01",
+    "expires": "",
+    "note": ""
+  },
+  "signature": "O4AE1+3i584ZQu64VuWdXzgtEBlDRK5hEotgAhnRn34s03/T6Eka...=="
+}
+```
+
+- **چه چیزی امضا می‌شود؟** همان `payload` با ترتیب کلیدهای ثابت (`stableSerialize`) تا امضا در همهٔ نسخه‌های Node یکسان باشد.
+- **با چه الگوریتمی؟** Ed25519 با `crypto.sign(null, payload, privateKey)`؛ تأیید با `crypto.verify(null, payload, publicKey, signature)`.
+- **کلید خصوصی** فقط پیش فروشنده می‌ماند (`license-keys/license-private.pem`، پیشنهاد: روی فلش/مدیر رمز، نه در Git و نه روی سرور مشتری). **کلید عمومی** در نسخهٔ فروشی قرار می‌گیرد (`LICENSE_PUBLIC_KEY` در `.env` یا `LICENSE_PUBLIC_KEY_PATH` یا `VENDOR_PUBLIC_KEY` در `shared/license.js`).
+
+**ب) لحظهٔ اجرا:**
+
+1. `server/index.js` با `loadEntitlement({ dir: db.dir })` لایسنس را از این ترتیب می‌خواند: `LICENSE_KEY` (متن در `.env`) → `LICENSE_FILE` → `DATA_DIR/license.json` → `DATA_DIR/license.key`.
+2. `resolveEntitlement` نتیجه را به یکی از حالت‌ها تبدیل می‌کند: `off` (همه باز)، معتبر، یا نامعتبر با دلیل مشخص: `LICENSE_MISSING`، `LICENSE_MALFORMED`، `LICENSE_SIGNATURE`، `LICENSE_ALGORITHM`، `LICENSE_EXPIRED`، `LICENSE_EMPTY`، `PUBLIC_KEY_MISSING`.
+3. ماژول‌های **پایه** همیشه اضافه می‌شوند (حتی اگر در payload نباشند) و ماژول/قابلیت ناشناس در payload دور ریخته می‌شود.
+4. در لاگ استارت یک خط چاپ می‌شود: `License: valid — … (n modules)` یا `License: not active — <دلیل>`.
+
+**پ) چهار جایی که لایسنس اعمال می‌شود:**
+
+| لایه                    | فایل                                                                      | رفتار                                                                         |
+| ----------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| هر endpoint قابلیت‌محور | `server/security.js` → `feature(id)`                                      | اول `entitled` بعد `enabled`؛ رد با `403 LICENSE_REQUIRED`                    |
+| فهرست‌های CRUD عمومی    | `server/resources.js` → `check()`                                         | همان بررسی برای `${resource}.${action}`                                       |
+| تنظیمات مدیر            | `server/modules/settings.js`                                              | `PATCH /settings/modules/:id` و `/features/:id` ماژول نخریده را روشن نمی‌کند  |
+| رابط کاربری             | `/api/config` (پرچم `entitled`) + `shared/catalog.js` و `src/context.jsx` | کارت «خریدنی»، سوییچ قفل، منو و مسیرهایی که API رد می‌کند نمایش داده نمی‌شوند |
+
+**ت) خودآزمایی پیش از تحویل به مشتری:**
+
+```bash
+node scripts/license.mjs inspect --license ./license-keys/MY-1405-5733.json   # امضا معتبر؟ کدام ماژول‌ها؟
+npm test -- tests/license.test.js                                             # ۷ آزمون امضا/دست‌کاری/انقضا/اعمال سه‌لایه
+```
+
+و آزمون دستی روی سرور (همان کاری که در ساخت این نسخه اجرا شد): سرور را با `LICENSE_MODE=on` و لایسنس «پایه + مالی» بالا بیاورید؛ سپس:
+
+- `GET /api/finance/settings` → **۲۰۰** (ماژول خریداری‌شده)
+- `GET /api/library/reservations` → **۴۰۳** با کد `LICENSE_REQUIRED` (ماژول نخریده)
+- `PATCH /api/settings/modules/library` → **۴۰۳** (مدیر هم نمی‌تواند بازش کند)
+- `GET /api/entities/students` → **۲۰۰** (پایه دست‌نخورده)
+- فایل لایسنس را دست‌کاری کنید (مثلاً یک ماژول به payload اضافه کنید) → لاگ `License: not active — امضای لایسنس…` و همهٔ ماژول‌های افزودنی بسته می‌شوند، ولی سامانه با ماژول‌های پایه بالا می‌ماند.
+
+## ۶) واقع‌بینانه دربارهٔ کپی و قفل
 
 - این لایسنس **قفل سخت‌گیرانه نیست**؛ کسی که کلید خصوصی نداشته باشد نمی‌تواند لایسنس جعلی معتبر بسازد، اما مدیر فنی می‌تواند فایل را پاک کند و عملاً فقط پایه‌ها کار کنند. این عمدی است: مدرسه نباید سر اول سال با قفل‌شدن سامانه گرفتار شود.
 - راه‌های واقعی که خودش محافظ است: **پشتیبانی و آموزش** (چیزی که کپی نمی‌شود)، **نام مشتری روی لایسنس**، **امضای Ed25519** و صدور نسخهٔ مخصوص هر مدرسه با نام/سریال.
@@ -211,7 +270,7 @@ LICENSE_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
 
 ---
 
-## ۶) چرا مشتری این را می‌خرد (حرف فروش)
+## ۷) چرا مشتری این را می‌خرد (حرف فروش)
 
 1. **یک‌بار بخر، همیشه داشته باش** — بدون هزینهٔ سالانه و بدون اجاره.
 2. **داده روی هاست خود مدرسه است** — هیچ‌چیز جایی منتقل نمی‌شود.
