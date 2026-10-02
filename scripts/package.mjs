@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { execFileSync } from 'node:child_process';
 import { zipSync } from 'fflate';
+import { runNpm } from './npm-run.mjs';
 const root = process.cwd();
 // بستهٔ دمو: همان برنامه، ولی با فایلی که مراحل راه‌اندازی دمو روی cPanel را
 // کنار خودش دارد تا مشتری/همکار بدون خواندن مستندات هم بتواند بالا بیاورد.
@@ -91,11 +91,10 @@ const runtimeDeps = Object.fromEntries(
       2,
     ),
   );
-  execFileSync(
-    process.platform === 'win32' ? 'npm.cmd' : 'npm',
-    ['install', '--omit=dev', '--no-audit', '--no-fund', '--no-package-lock'],
-    { cwd: stage, stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, NODE_ENV: '' } },
-  );
+  runNpm(['install', '--omit=dev', '--no-audit', '--no-fund', '--no-package-lock'], {
+    cwd: stage,
+    env: { ...process.env, NODE_ENV: '' },
+  });
   addFrom(path.join(stage, 'node_modules'), 'node_modules/');
   fs.rmSync(stage, { recursive: true, force: true });
   console.log(`Bundled runtime node_modules (${Object.keys(runtimeDeps).length} direct packages).`);

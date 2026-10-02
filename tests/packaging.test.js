@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import { unzipSync } from 'fflate';
+import { runNpm } from '../scripts/npm-run.mjs';
 
 const repoRoot = process.cwd();
 let workDir;
@@ -65,10 +66,7 @@ const bootUnpacked = async (cwd, extraEnv = {}) => {
 
 before(() => {
   if (!fs.existsSync(path.join(repoRoot, 'dist/index.html'))) {
-    execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'build'], {
-      cwd: repoRoot,
-      stdio: ['ignore', 'ignore', 'inherit'],
-    });
+    runNpm(['run', 'build'], { cwd: repoRoot });
   }
   workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'madresehyar-pack-'));
   const zipPath = path.join(workDir, 'demo.zip');
@@ -116,15 +114,10 @@ test('pack: "Run NPM Install" fallback (production npm install) also boots', asy
   fs.mkdirSync(fallback, { recursive: true });
   unzipPackage(path.join(workDir, 'demo.zip'), fallback);
   fs.rmSync(path.join(fallback, 'node_modules'), { recursive: true, force: true });
-  execFileSync(
-    process.platform === 'win32' ? 'npm.cmd' : 'npm',
-    ['install', '--no-audit', '--no-fund'],
-    {
-      cwd: fallback,
-      stdio: ['ignore', 'ignore', 'inherit'],
-      env: { ...process.env, NODE_ENV: 'production' },
-    },
-  );
+  runNpm(['install', '--no-audit', '--no-fund'], {
+    cwd: fallback,
+    env: { ...process.env, NODE_ENV: 'production' },
+  });
   const boot = await bootUnpacked(fallback);
   try {
     assert.ok(boot.health, `fallback NPM install did not boot; log: ${boot.log}`);
