@@ -85,7 +85,7 @@ export function createApp(
   api.get('/health', (_req, res) =>
     res.json({
       status: 'ok',
-      version: '1.2.0',
+      version: '1.2.1',
       installed: !!db.setting('installed'),
       vendor: VENDOR.name,
       vendor_latin: VENDOR.name_latin,

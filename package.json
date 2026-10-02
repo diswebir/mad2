@@ -1,6 +1,6 @@
 {
   "name": "madresehyar",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "type": "module",
   "description": "سامانه ماژولار مدیریت مدرسه با نصب آسان روی cPanel",
@@ -39,6 +39,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
+    "fflate": "^0.8.2",
     "helmet": "^8.1.0",
     "lucide-react": "^0.468.0",
     "multer": "^2.0.2",
@@ -53,7 +54,6 @@
     "@vitejs/plugin-react": "^5.0.3",
     "concurrently": "^9.2.1",
     "cross-env": "^10.0.0",
-    "fflate": "^0.8.2",
     "prettier": "^3.9.9",
     "vite": "^7.1.7"
   }

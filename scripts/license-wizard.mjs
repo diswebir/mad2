@@ -129,7 +129,7 @@ async function main() {
   const expires = lifetime ? '' : await ask('   Expiry date (example 2028-06-30), empty = none: ');
 
   const payload = {
-    v: '1.2.0',
+    v: '1.2.1',
     id: serial,
     customer: school,
     school,

@@ -611,7 +611,7 @@ footer small{display:block;opacity:.7;margin-top:5px}
 <section class="tab active" id="tab-home" role="tabpanel">
   <div class="hero">
     <div class="wrap">
-      <span class="hero-badge">${icon('award', 16)} نسخهٔ ${faNum('1.2.0')} · ساختهٔ شرکت دیس وب</span>
+      <span class="hero-badge">${icon('award', 16)} نسخهٔ ${faNum('1.2.1')} · ساختهٔ شرکت دیس وب</span>
       <h1>مدرسه‌یار؛ <em>مدیریت کامل مدرسه</em>، ساده، فارسی و متعلق به خودتان</h1>
       <p class="lead">از حضور و غیاب و نمرات گرفته تا شهریه، کارنامه، کتابخانه و ارتباط زنده با خانواده‌ها — همه در یک سامانهٔ حرفه‌ای که روی هاست خود مدرسه نصب می‌شود، <b>یک‌بار خریده می‌شود و برای همیشه مال شماست</b>.</p>
       <div class="hero-actions">
@@ -964,7 +964,7 @@ footer small{display:block;opacity:.7;margin-top:5px}
       <small>ساخته، پشتیبانی و ارائه‌شده توسط <b style="color:#fff">شرکت دیس وب</b> — <a href="https://disweb.ir" target="_blank" rel="noreferrer">https://disweb.ir</a></small>
     </div>
     <div style="text-align:left">
-      <b>نسخهٔ ${faNum('1.2.0')}</b>
+      <b>نسخهٔ ${faNum('1.2.1')}</b>
       <small>${faNum(17)} ماژول · ${faNum(188)} قابلیت · ${faNum(33)} نوع پرونده · مادام‌العمر بدون اشتراک</small>
     </div>
   </div>
