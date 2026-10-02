@@ -12,6 +12,7 @@ import {
   Loading,
   Modal,
   statusTone,
+  SearchSelect,
 } from './ui';
 
 // Overdue list, renewals, fines and reservations for the library module.
@@ -199,29 +200,25 @@ function ReserveForm({ onClose, onSaved }) {
         <div className="form-grid">
           <div className="form-field">
             <label htmlFor="reserve-book">کتاب</label>
-            <select id="reserve-book" value={bookId} onChange={(e) => setBookId(e.target.value)}>
-              <option value="">انتخاب کتاب</option>
-              {(lookups.books || []).map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.label}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              id="reserve-book"
+              value={bookId}
+              onChange={setBookId}
+              placeholder="عنوان کتاب را جست‌وجو کنید..."
+              ariaLabel="کتاب"
+              options={(lookups.books || []).map((b) => ({ value: b.id, label: b.label }))}
+            />
           </div>
           <div className="form-field">
             <label htmlFor="reserve-student">دانش‌آموز</label>
-            <select
+            <SearchSelect
               id="reserve-student"
               value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-            >
-              <option value="">انتخاب دانش‌آموز</option>
-              {(lookups.students || []).map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+              onChange={setStudentId}
+              placeholder="نام دانش‌آموز را جست‌وجو کنید..."
+              ariaLabel="دانش‌آموز"
+              options={(lookups.students || []).map((s) => ({ value: s.id, label: s.label }))}
+            />
           </div>
           <div className="form-field">
             <label htmlFor="reserve-date">موردنیاز تا تاریخ</label>

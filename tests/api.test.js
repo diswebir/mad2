@@ -322,6 +322,17 @@ test('validation rejects impossible dates, scores, capacity and duplicate identi
 });
 
 test('attendance batches are atomic, scoped, and notify student and parent', async () => {
+  // پیش‌نیاز این آزمون، وجود حضور ثبت‌شده برای امروز است. بذر دمو در روزهای جمعه
+  // حضور نمی‌سازد؛ برای اینکه نتیجه به روزِ هفته وابسته نباشد، پیش‌نیاز را صریح
+  // می‌سازیم (دانش‌آموز ۱ در کلاس ۱ و دانش‌آموز ۲۱ در کلاس ۲).
+  for (const [student_id, class_id] of [
+    [1, 1],
+    [21, 2],
+  ])
+    f.db.run(
+      'INSERT OR IGNORE INTO attendance(student_id,class_id,date,status,note,recorded_by) VALUES (?,?,?,?,?,?)',
+      [student_id, class_id, today(), 'present', '', 1],
+    );
   const old = f.db.get('SELECT * FROM attendance WHERE student_id=1 AND date=?', [today()]);
   const wrong = await teacher.request('/attendance', {
     method: 'POST',
@@ -1004,4 +1015,50 @@ test('compiled SPA can be served from a hidden application directory without exp
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+test('ui settings: the principal changes palette and font scale and invalid values are rejected', async () => {
+  const defaults = (await admin.request('/config')).data.ui;
+  assert.deepEqual(defaults, { palette: 'violet', font_scale: 'medium' });
+  const saved = await admin.request('/settings/ui', {
+    method: 'PATCH',
+    body: { palette: 'sky', font_scale: 'large' },
+  });
+  assert.equal(saved.status, 200);
+  const config = (await admin.request('/config')).data;
+  assert.equal(config.ui.palette, 'sky');
+  assert.equal(config.ui.font_scale, 'large');
+  // مقادیر ناشناخته نباید ذخیره شوند
+  assert.equal(
+    (
+      await admin.request('/settings/ui', {
+        method: 'PATCH',
+        body: { palette: 'neon', font_scale: 'large' },
+      })
+    ).status,
+    422,
+  );
+  assert.equal(
+    (
+      await admin.request('/settings/ui', {
+        method: 'PATCH',
+        body: { palette: 'sky', font_scale: 'gigantic' },
+      })
+    ).status,
+    422,
+  );
+  // فقط مدیر مدرسه
+  assert.equal(
+    (
+      await teacher.request('/settings/ui', {
+        method: 'PATCH',
+        body: { palette: 'sky', font_scale: 'large' },
+      })
+    ).status,
+    403,
+  );
+  // مقدار قبلی باید دست‌نخورده بماند
+  assert.equal((await admin.request('/config')).data.ui.palette, 'sky');
+  await admin.request('/settings/ui', { method: 'PATCH', body: defaults });
+  assert.equal((await admin.request('/config')).data.ui.palette, 'violet');
 });

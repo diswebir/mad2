@@ -8,6 +8,10 @@
 
 ## ۱) نصب دمو روی cPanel (۱۵ دقیقه)
 
+> این نصب **فقط برای نمایش و فروش** است؛ هرگز دادهٔ واقعی مدرسه داخل آن وارد نکنید.
+> نصب دمو روی `NODE_ENV=production` (که Passenger خودش تنظیم می‌کند) هم کار می‌کند
+> و نیازی به دست‌زدن به NODE_ENV نیست.
+
 ### گام ۱ — بستهٔ دمو را بساز و بردار
 
 ```bash
@@ -15,49 +19,58 @@ npm ci
 npm run package:demo
 ```
 
-خروجی: `artifacts/madresehyar-demo-cpanel.zip` (همین حالا در مخزن ساخته شده است). کنار فایل، `START-HERE-DEMO.txt` داخل ZIP مراحل را دوباره یادآوری می‌کند.
+خروجی: `artifacts/madresehyar-demo-cpanel.zip`. داخل ZIP فایل `START-HERE-DEMO.txt` هم هست و همین مراحل را خلاصه می‌کند.
 
-### گام ۲ — پوشهٔ برنامه
+### گام ۲ — پوشهٔ برنامه و پوشهٔ داده
 
 در cPanel → **File Manager**:
 
 1. پوشه‌ای بسازید مثل `/home/CPANEL_USER/madresehyar` **بیرون از `public_html`**.
 2. فایل ZIP را در همان پوشه Upload و **Extract** کنید. پس از Extract باید `app.cjs` و `package.json` مستقیماً داخل `madresehyar` باشند (نه یک پوشهٔ تو در تو).
-3. پوشهٔ دادهٔ دمو را هم بسازید: `/home/CPANEL_USER/madresehyar-demo-data` (بیرون از public_html).
+3. یک پوشهٔ جدا برای دادهٔ دمو بسازید: `/home/CPANEL_USER/madresehyar-demo-data` (بیرون از `public_html`). هر وقت این پوشه را خالی کنید و Restart بزنید، دمو از نو ساخته می‌شود.
 
 ### گام ۳ — ساخت اپلیکیشن Node
 
 cPanel → **Setup Node.js App** → **Create Application**:
 
-| فیلد                     | مقدار                                                      |
-| ------------------------ | ---------------------------------------------------------- |
-| Node.js version          | `22.x` (یا ۲۰.۱۹+)                                         |
-| Application mode         | `Production` در فهرست؛ ولی متغیرها را خودمان تعیین می‌کنیم |
-| Application root         | `madresehyar`                                              |
-| Application URL          | دامنه یا زیردامنهٔ دمو، مثلاً `demo.example.com`           |
-| Application startup file | `app.cjs`                                                  |
+| فیلد                     | مقدار                                            |
+| ------------------------ | ------------------------------------------------ |
+| Node.js version          | `22.x` (یا `20.19+`)                             |
+| Application mode         | هر مقداری؛ دمو به‌صورت پیش‌فرض `Production` است  |
+| Application root         | `madresehyar`                                    |
+| Application URL          | دامنه یا زیردامنهٔ دمو، مثلاً `demo.example.com` |
+| Application startup file | `app.cjs`                                        |
 
-بعد **Run NPM Install** را بزنید (روی بستهٔ آماده فقط وابستگی‌های production لازم است).
+سپس دکمهٔ **Run NPM Install** را بزنید و تا پایان نصب صبر کنید (وابستگی‌های لازم داخل خود بسته اعلام شده‌اند؛ چیزی اضافه لازم نیست).
 
-> **زیرپوشه:** اگر می‌خواهید دمو روی `example.com/demo` باشد، در Application URL مقدار `/demo` بگذارید و `BASE_PATH=/demo` را هم در متغیرها وارد کنید.
+> **زیرپوشه:** اگر می‌خواهید دمو روی `example.com/demo` باشد، در Application URL مقدار `/demo` را بگذارید و `BASE_PATH=/demo` را هم در گام ۴ وارد کنید.
 
-### گام ۴ — متغیرهای محیطی دمو
+### گام ۴ — فایل تنظیمات `.env`
 
-در همان صفحه، بخش **Environment variables** یا فایل `.env` (کنار `package.json`):
+در **همان پوشهٔ `madresehyar`** (کنار `package.json`) فایلی به نام دقیق **`.env`** بسازید (دکمهٔ New File در File Manager) و این متن را داخل آن بگذارید؛ به‌جای `CPANEL_USER` نام کاربری هاست خودتان را بنویسید:
 
 ```dotenv
-NODE_ENV=development
 DEMO_MODE=true
 DATA_DIR=/home/CPANEL_USER/madresehyar-demo-data
-TRUST_PROXY=1
 BASE_PATH=
+TRUST_PROXY=1
 ```
 
-سپس **Restart**.
+- `BASE_PATH` برای دامنهٔ اصلی خالی می‌ماند؛ برای زیرپوشه مثلاً `/demo` بگذارید.
+- اگر `.env` نمی‌سازید، همین مقادیر را در بخش **Environment variables** صفحهٔ اپلیکیشن وارد کنید.
+- نیازی به `NODE_ENV` نیست؛ هر مقداری (از جمله `production`) قابل قبول است.
 
-### گام ۵ — ورود به دمو
+### گام ۵ — اجرا و بررسی
 
-صفحه را باز کنید (`https://demo.example.com` یا `https://example.com/demo`). در اولین اجرا دادهٔ نمایشی ساخته می‌شود:
+1. **Restart** را بزنید.
+2. از همان صفحه، ورودی برنامه (Log) را باز کنید — یا از منوی **Errors** در cPanel. دو خط زیر یعنی نصب سالم است:
+
+```
+Vendor: Dis Web Company (شرکت دیس وب) - https://disweb.ir
+MadresehYar is ready on port ... (demo mode)
+```
+
+3. آدرس سایت را باز کنید؛ در اولین اجرا دادهٔ نمایشی ساخته می‌شود:
 
 | نقش       | نام کاربری | رمز           |
 | --------- | ---------- | ------------- |
@@ -70,10 +83,20 @@ BASE_PATH=
 
 ### گام ۶ — دموی تمیز برای هر نمایش
 
-- **شروع از صفر:** پوشهٔ `madresehyar-demo-data` را پاک کنید و Restart بزنید؛ دادهٔ دمو از نو ساخته می‌شود.
+- **شروع از صفر:** محتوای پوشهٔ `madresehyar-demo-data` را پاک کنید و Restart بزنید؛ دادهٔ دمو از نو ساخته می‌شود.
 - **نصب دوم بدون خراب‌کردن اولی:** یک `DATA_DIR` دیگر بدهید.
 
-> ⚠️ **دمو = حالت توسعه.** در دمو نمایش خطای دقیق‌تر، Cookie بدون الزام Secure و پرچم iframe بازتر است و حساب‌ها رمز عمومی دارند. **هیچ‌وقت دادهٔ واقعی مدرسه را روی نصب دمو وارد نکنید.** روی هاست واقعی `NODE_ENV=production` و `DEMO_MODE=false` اجباری است (خود برنامه اگر `DEMO_MODE=true` را با `NODE_ENV=production` ببیند، بالا نمی‌آید).
+### عیب‌یابی نصب دمو
+
+| مشکل                                 | راه‌حل                                                                                                                                 |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| صفحه ۵۰۰ می‌دهد                      | لاگ برنامه را بخوانید؛ رایج‌ترین دلیل، اشتباه‌بودن مسیر `DATA_DIR` یا ساخته‌نشدن پوشهٔ داده است. مسیر باید کامل و از `/home` شروع شود. |
+| `Cannot find module ...`             | دوباره **Run NPM Install** را بزنید.                                                                                                   |
+| ۴۰۴ روی زیرپوشه (`example.com/demo`) | `BASE_PATH=/demo` را فراموش کرده‌اید.                                                                                                  |
+| داده‌ها قدیمی/کثیف شده               | پوشهٔ داده را خالی کنید و Restart بزنید.                                                                                               |
+| صفحه سفید می‌ماند                    | در File Manager بررسی کنید `dist/` بعد از Extract وجود داشته باشد؛ نصب دوبارهٔ ZIP مشکل را حل می‌کند.                                  |
+
+> ⚠️ **دمو = نصب نمایشی.** حساب‌ها رمز عمومی دارند و امکانات نمایشی بازتر است. **هیچ‌وقت دادهٔ واقعی مدرسه را روی نصب دمو وارد نکنید.** برای مدرسهٔ واقعی، بستهٔ اصلی `madresehyar-cpanel.zip` را با `DEMO_MODE=false` نصب کنید.
 
 ---
 

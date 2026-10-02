@@ -391,7 +391,7 @@ export default function Layout() {
               <i />
               سامانه آماده است
             </span>
-            <span>نسخه ۱.۱.۱</span>
+            <span>نسخه ۱.۲.۰</span>
           </div>
           <a
             className="sidebar-vendor"

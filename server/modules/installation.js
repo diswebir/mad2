@@ -27,7 +27,7 @@ export function installationRouter(db, security, { installToken, demo }) {
         url: VENDOR.url,
         product: VENDOR.product,
       },
-      version: '1.1.1',
+      version: '1.2.0',
       features: featureDefs.length,
       modules: moduleDefs.map((m) => ({ ...m, entitled: security.entitledModule(m.id) })),
       requirements: [

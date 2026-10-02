@@ -19,7 +19,7 @@ export function supportRouter(db, security) {
       }
     };
     return {
-      version: '1.1.1',
+      version: '1.2.0',
       node: process.versions.node,
       started_at: new Date(startedAt).toISOString(),
       uptime_seconds: Math.round((Date.now() - startedAt) / 1000),

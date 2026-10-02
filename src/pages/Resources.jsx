@@ -34,6 +34,7 @@ import {
   PageHeader,
   SearchInput,
   statusTone,
+  SearchSelect,
 } from '../components/ui';
 
 export function FieldValue({ field, value }) {
@@ -122,14 +123,20 @@ function FormField({ field: f, value, onChange, busy, resource, setError }) {
           ))}
         </select>
       ) : f.type === 'reference' ? (
-        <select {...attrs}>
-          <option value="">انتخاب {f.label}</option>
-          {lookups[f.resource]?.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.label}
-            </option>
-          ))}
-        </select>
+        <SearchSelect
+          id={id}
+          required={!!f.required}
+          disabled={busy}
+          value={value ?? ''}
+          onChange={(v) => onChange(v)}
+          placeholder={`جست‌وجو یا انتخاب ${f.label}...`}
+          ariaLabel={f.label}
+          options={(lookups[f.resource] || []).map((r) => ({
+            value: r.id,
+            label: r.label,
+            hint: r.hint || '',
+          }))}
+        />
       ) : f.type === 'file' ? (
         <div className="file-upload-field">
           <input
@@ -1583,34 +1590,48 @@ export default function Resources({ moduleId, embedded = false }) {
         </div>
         {showFilters && (
           <div className="filter-panel">
-            {filterFields.map((f) => (
-              <label key={f.name}>
-                {f.label}
-                <select
-                  value={filters[f.name] || ''}
-                  onChange={(e) => {
-                    setFilters((x) => ({ ...x, [f.name]: e.target.value }));
-                    setPage(1);
-                  }}
-                >
-                  <option value="">
-                    همه{' '}
-                    {f.label === 'کلاس' ? 'کلاس‌ها' : f.label === 'وضعیت' ? 'وضعیت‌ها' : 'موارد'}
-                  </option>
-                  {f.type === 'select'
-                    ? f.options.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))
-                    : lookups[f.resource]?.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.label}
-                        </option>
-                      ))}
-                </select>
-              </label>
-            ))}
+            {filterFields.map((f) =>
+              f.type === 'select' ? (
+                <label key={f.name}>
+                  {f.label}
+                  <select
+                    value={filters[f.name] || ''}
+                    onChange={(e) => {
+                      setFilters((x) => ({ ...x, [f.name]: e.target.value }));
+                      setPage(1);
+                    }}
+                  >
+                    <option value="">همه موارد</option>
+                    {f.options.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <label key={f.name}>
+                  {f.label}
+                  <SearchSelect
+                    value={filters[f.name] || ''}
+                    onChange={(v) => {
+                      setFilters((x) => ({ ...x, [f.name]: v }));
+                      setPage(1);
+                    }}
+                    placeholder={`همه ${f.label === 'کلاس' ? 'کلاس‌ها' : 'موارد'}`}
+                    ariaLabel={f.label}
+                    options={[
+                      { value: '', label: `همه ${f.label === 'کلاس' ? 'کلاس‌ها' : 'موارد'}` },
+                      ...(lookups[f.resource] || []).map((r) => ({
+                        value: r.id,
+                        label: r.label,
+                        hint: r.hint || '',
+                      })),
+                    ]}
+                  />
+                </label>
+              ),
+            )}
             {Object.values(filters).some(Boolean) && (
               <Button
                 variant="ghost"

@@ -30,6 +30,18 @@ async function closeCredentials(page) {
   await dialog.getByRole('button', { name: 'متوجه شدم', exact: true }).click();
   return { username: values[0], password: values[1] };
 }
+// فهرست‌های کشویی جست‌وجو‌پذیر (SearchSelect) جای <select> بومی را گرفته‌اند؛
+// انتخاب همان کاری است که کاربر می‌کند: باز کردن، تایپ (برای نام) و کلیک روی گزینه.
+// برای انتخاب با شناسه، گزینه‌ها data-value دارند تا دقیقاً همان رکورد قبلی انتخاب شود.
+async function pickOption(input, valueOrText) {
+  await input.click();
+  const box = input.locator('xpath=ancestor::*[contains(@class,"search-select")]').first();
+  const option =
+    typeof valueOrText === 'string' && /^\d+$/.test(valueOrText)
+      ? box.locator(`.search-select-option[data-value="${valueOrText}"]`)
+      : box.locator('.search-select-option', { hasText: valueOrText }).first();
+  await option.click();
+}
 async function logout(page) {
   await page.locator('.profile-button').click();
   await page.getByRole('button', { name: 'خروج از حساب', exact: true }).click();
@@ -87,7 +99,7 @@ test('manager creates teacher, classroom, student; first logins rotate passwords
   await page.getByRole('button', { name: 'افزودن کلاس', exact: true }).click();
   await page.locator('#field-classes-name').fill('کلاس آزمایشی');
   await page.locator('#field-classes-grade').selectOption('1');
-  await page.locator('#field-classes-teacher_id').selectOption({ label: 'لیلا آزمایش' });
+  await pickOption(page.locator('#field-classes-teacher_id'), 'لیلا آزمایش');
   await page.locator('#field-classes-room').fill('۲۰۱');
   await page.getByRole('button', { name: 'ثبت کلاس', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -97,7 +109,7 @@ test('manager creates teacher, classroom, student; first logins rotate passwords
   await page.locator('#field-students-first_name').fill('سینا');
   await page.locator('#field-students-last_name').fill('آزمایش');
   await page.locator('#field-students-national_id').fill('1999999917');
-  await page.locator('#field-students-class_id').selectOption({ label: 'کلاس آزمایشی' });
+  await pickOption(page.locator('#field-students-class_id'), 'کلاس آزمایشی');
   await page.locator('#field-students-guardian_name').fill('رضا آزمایش');
   await page.locator('#field-students-guardian_phone').fill('09121234560');
   await page.getByRole('button', { name: 'ثبت دانش‌آموز', exact: true }).click();
@@ -578,7 +590,7 @@ test('the principal sees today tasks and families submit a leave that the school
   await expect(page.getByRole('heading', { name: 'درخواست‌های مرخصی و غیبت موجه' })).toBeVisible();
   await page.getByRole('button', { name: 'درخواست جدید' }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('دانش‌آموز').selectOption('1');
+  await pickOption(dialog.getByLabel('دانش‌آموز'), '1');
   await dialog.getByLabel('سال شروع مرخصی').selectOption('1405');
   await dialog.getByLabel('ماه شروع مرخصی').selectOption('7');
   await dialog.getByLabel('روز شروع مرخصی').selectOption('20');
@@ -604,8 +616,8 @@ test('parent-teacher meeting slots are created and booked from the interface', a
   await form.getByLabel('سال تاریخ جلسه').selectOption('1405');
   await form.getByLabel('ماه تاریخ جلسه').selectOption('7');
   await form.getByLabel('روز تاریخ جلسه').selectOption('25');
-  await form.getByLabel('معلم').selectOption('1');
-  await form.getByLabel('کلاس').selectOption('1');
+  await pickOption(form.getByLabel('معلم'), '1');
+  await pickOption(form.getByLabel('کلاس'), '1');
   await form.getByLabel('ظرفیت هر بازه').fill('2');
   await form.getByLabel('مکان').fill('کلاس ۱۰۱');
   await form.getByRole('button', { name: 'ثبت بازه' }).click();
@@ -613,7 +625,7 @@ test('parent-teacher meeting slots are created and booked from the interface', a
   await expect(card).toContainText('کلاس ۱۰۱');
   await card.getByRole('button', { name: 'گرفتن نوبت' }).click();
   const booking = page.getByRole('dialog');
-  await booking.getByLabel('دانش‌آموز').selectOption('1');
+  await pickOption(booking.getByLabel('دانش‌آموز'), '1');
   await booking.getByLabel('موضوع گفت‌وگو').fill('بررسی وضعیت درسی');
   await booking.getByRole('button', { name: 'ثبت نوبت' }).click();
   await expect(page.locator('.toast').last()).toContainText('نوبت ملاقات ثبت شد');
@@ -627,7 +639,7 @@ test('report cards print from the reports tab and the print stylesheet hides the
   await dashboard(page);
   await page.getByRole('link', { name: 'گزارش‌ها' }).click();
   await page.getByRole('button', { name: 'کارنامه دوره' }).click();
-  await page.getByLabel('انتخاب کلاس').selectOption('1');
+  await pickOption(page.getByLabel('انتخاب کلاس'), '1');
   await expect(page.locator('.report-stat')).toHaveCount(3);
   await page.getByRole('link', { name: 'چاپ کارنامه‌های کلاس' }).click();
   await expect(page.locator('.print-sheet').first()).toBeVisible();
@@ -676,9 +688,74 @@ test('personal trend analytics render monthly grade and attendance bars', async 
   await dashboard(page);
   await page.getByRole('link', { name: 'گزارش‌ها' }).click();
   await page.getByRole('button', { name: 'روند دانش‌آموز' }).click();
-  await page.getByLabel('انتخاب دانش‌آموز').selectOption('1');
+  await pickOption(page.getByLabel('انتخاب دانش‌آموز'), '1');
   await expect(page.locator('.trend-column').first()).toContainText('معدل ماهانه');
   await expect(page.locator('.trend-row').first()).toBeVisible();
   await page.getByRole('button', { name: 'خروجی وزارت' }).click();
   await expect(page.locator('.export-grid')).toContainText('سامانه‌های بیرونی');
+});
+
+test('the principal switches the color palette and font scale from settings and it persists', async ({
+  page,
+}) => {
+  await dashboard(page);
+  await page.goto('/settings?tab=appearance');
+  await expect(page.getByRole('heading', { name: 'پالت رنگی و ظاهر' })).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'violet');
+  await page.getByRole('button', { name: /آسمانی/ }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'sky');
+  await page.getByRole('button', { name: /^بزرگ / }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-font-scale', 'large');
+  // انتخاب زنده باید بدون ذخیره هم دیده شود
+  await expect(page.getByRole('button', { name: /ذخیره/ }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'ذخیرهٔ ظاهر' }).click();
+  await expect(page.getByRole('button', { name: 'ذخیره شد' })).toBeVisible();
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'sky');
+  await expect(page.locator('html')).toHaveAttribute('data-font-scale', 'large');
+  // بازگردانی به پیش‌فرض تا آزمون‌های بعدی تم اصلی را ببینند
+  await page.getByRole('button', { name: 'بازگردانی پیش‌فرض' }).click();
+  await page.getByRole('button', { name: /ذخیره/ }).first().click();
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'violet');
+  await expect(page.locator('html')).toHaveAttribute('data-font-scale', 'medium');
+});
+
+test('attendance cards work on a phone and the searchable student picker finds names', async ({
+  page,
+}) => {
+  await dashboard(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/attendance');
+  await expect(page.getByRole('heading', { name: 'حضور و غیاب' })).toBeVisible();
+  const firstCard = page.locator('.attendance-table tbody tr').first();
+  // روی گزینه‌ای کلیک می‌کنیم که فعلاً انتخاب نشده تا «تغییر» واقعی شود؛
+  // اگر وضعیت قبلی دانش‌آموز همان بود، نوار ذخیره ظاهر نمی‌شود.
+  // (لوکیتور باید پایدار بماند؛ انتخابگر aria-pressed بعد از کلیک عوض می‌شود.)
+  const buttons = firstCard.locator('.status-option');
+  let target = buttons.first();
+  for (let i = 0; i < (await buttons.count()); i++) {
+    if ((await buttons.nth(i).getAttribute('aria-pressed')) !== 'true') {
+      target = buttons.nth(i);
+      break;
+    }
+  }
+  await target.click();
+  await expect(target).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.mobile-save-bar')).toBeVisible();
+  await expect(page.locator('.mobile-save-bar')).toContainText('تغییر ذخیره‌نشده');
+  await page.locator('.mobile-save-bar').getByRole('button', { name: 'ذخیره تغییرات' }).click();
+  await expect(page.locator('.mobile-save-bar')).toBeHidden();
+  // فهرست کشویی جست‌وجو‌پذیر: پیدا کردن دانش‌آموز با تایپ چند حرف
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/attendance?tab=leaves');
+  await page.getByRole('button', { name: 'درخواست جدید' }).click();
+  const dialog = page.getByRole('dialog');
+  const picker = dialog.locator('.search-select').first();
+  await picker.locator('input').click();
+  await picker.locator('input').fill('نی');
+  await expect(picker.locator('.search-select-menu')).toBeVisible();
+  await expect(picker.locator('.search-select-option').first()).toBeVisible();
+  await picker.locator('.search-select-option').first().click();
+  await expect(picker.locator('input')).not.toHaveValue('');
 });

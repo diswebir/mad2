@@ -135,7 +135,7 @@ export default function Auth() {
           </p>
         </div>
         <footer className="auth-footer auth-footer-vendor">
-          <span>مدرسه‌یار · نسخه ۱.۱.۱</span>
+          <span>مدرسه‌یار · نسخه ۱.۲.۰</span>
           <Link to="/install">
             راهنمای راه‌اندازی
             <Icon name="ArrowUpLeft" size={14} />

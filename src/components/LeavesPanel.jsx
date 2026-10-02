@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 import { api, dateFa, describeError, fa } from '../lib/api';
 import { useApi, useApp } from '../context';
-import { Badge, Button, Empty, ErrorBox, Icon, JalaliDateField, Loading, Modal } from './ui';
+import {
+  Badge,
+  Button,
+  Empty,
+  ErrorBox,
+  Icon,
+  JalaliDateField,
+  Loading,
+  Modal,
+  SearchSelect,
+} from './ui';
 
 const typeLabels = {
   sick: 'بیماری',
@@ -64,18 +74,14 @@ function RequestForm({ onClose, onSaved }) {
           {!user.student_id && ['admin', 'teacher'].includes(user.role) && (
             <div className="form-field full-width">
               <label htmlFor="leave-student">دانش‌آموز</label>
-              <select
+              <SearchSelect
                 id="leave-student"
                 value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-              >
-                <option value="">انتخاب دانش‌آموز</option>
-                {(lookups.students || []).map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+                onChange={setStudentId}
+                placeholder="نام دانش‌آموز را جست‌وجو کنید..."
+                ariaLabel="دانش‌آموز"
+                options={(lookups.students || []).map((s) => ({ value: s.id, label: s.label }))}
+              />
             </div>
           )}
           <div className="form-field">

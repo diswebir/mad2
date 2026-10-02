@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, dateFa, describeError, download, fa, query, today } from '../lib/api';
 import { useApi, useApp } from '../context';
-import { Badge, Button, Empty, ErrorBox, Icon, Loading, statusTone } from './ui';
+import { Badge, Button, Empty, ErrorBox, Icon, Loading, statusTone, SearchSelect } from './ui';
 
 export function ReportCardPanel() {
   const { can, lookups, toast } = useApp();
@@ -33,18 +33,13 @@ export function ReportCardPanel() {
           </p>
         </div>
         <div className="panel-actions">
-          <select
-            aria-label="انتخاب کلاس"
+          <SearchSelect
+            ariaLabel="انتخاب کلاس"
             value={classId}
-            onChange={(e) => setClassId(e.target.value)}
-          >
-            <option value="">انتخاب کلاس</option>
-            {(lookups.classes || []).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+            onChange={setClassId}
+            placeholder="جست‌وجو یا انتخاب کلاس..."
+            options={(lookups.classes || []).map((c) => ({ value: c.id, label: c.label }))}
+          />
           {classId && (
             <>
               <Link className="btn btn-primary" to={`/print/cards/${classId}`}>
@@ -137,18 +132,13 @@ export function TrendPanel() {
           <h2>روند تحصیلی دانش‌آموز</h2>
           <p className="muted small-text">تغییر معدل و حضور در ماه‌های گذشته.</p>
         </div>
-        <select
-          aria-label="انتخاب دانش‌آموز"
+        <SearchSelect
+          ariaLabel="انتخاب دانش‌آموز"
           value={studentId}
-          onChange={(e) => setStudentId(e.target.value)}
-        >
-          <option value="">انتخاب دانش‌آموز</option>
-          {(lookups.students || []).map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+          onChange={setStudentId}
+          placeholder="نام دانش‌آموز را جست‌وجو کنید..."
+          options={(lookups.students || []).map((s) => ({ value: s.id, label: s.label }))}
+        />
       </div>
       {error ? (
         <div className="panel-padding">

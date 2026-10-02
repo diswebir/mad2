@@ -122,7 +122,7 @@ function issue(options) {
   const features = splitList(options.features);
   const year = new Date().toLocaleDateString('fa-IR-u-nu-latn', { year: 'numeric' }).slice(0, 4);
   const payload = {
-    v: '1.1.1',
+    v: '1.2.0',
     id: String(options.id || `MY-${year}-${crypto.randomInt(1000, 9999)}`).trim(),
     customer,
     school: String(options.school || customer).trim(),

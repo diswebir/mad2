@@ -140,3 +140,47 @@ test('deploy: production static assets keep their cache and security headers und
     await instance.close();
   }
 });
+
+test('deploy: DEMO_MODE=true boots under NODE_ENV=production exactly like cPanel/Passenger', async () => {
+  const { spawn } = await import('node:child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'madresehyar-demo-prod-'));
+  fs.mkdirSync(path.join(dir, 'uploads'), { recursive: true });
+  const port = 4520 + Math.floor(Math.random() * 260);
+  const child = spawn(process.execPath, ['server/index.js'], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      DEMO_MODE: 'true',
+      DATA_DIR: dir,
+      PORT: String(port),
+      LICENSE_MODE: 'off',
+      INSTALL_TOKEN: '',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let log = '';
+  child.stdout.on('data', (chunk) => (log += chunk));
+  child.stderr.on('data', (chunk) => (log += chunk));
+  try {
+    let health = null;
+    for (let attempt = 0; attempt < 90 && !health; attempt++) {
+      try {
+        const response = await fetch(`http://127.0.0.1:${port}/api/health`);
+        if (response.ok) health = await response.json();
+      } catch {
+        /* هنوز بالا نیامده */
+      }
+      if (!health) await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    assert.ok(health, `demo server did not boot under NODE_ENV=production; log: ${log}`);
+    assert.equal(health.status, 'ok');
+    assert.equal(health.installed, true);
+    assert.ok(log.includes('demo mode'), `expected demo mode in log: ${log}`);
+    assert.ok(!/DEMO_MODE must be false/.test(log), log);
+  } finally {
+    child.kill('SIGTERM');
+    await new Promise((resolve) => child.once('exit', resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

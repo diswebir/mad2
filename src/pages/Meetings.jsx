@@ -15,6 +15,7 @@ import {
   JalaliDateField,
   PageHeader,
   statusTone,
+  SearchSelect,
 } from '../components/ui';
 
 const slotTone = (slot) =>
@@ -53,18 +54,14 @@ function BookSlot({ slot, onClose, onSaved }) {
         <div className="form-grid">
           <div className="form-field">
             <label htmlFor="booking-student">دانش‌آموز</label>
-            <select
+            <SearchSelect
               id="booking-student"
               value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-            >
-              <option value="">انتخاب دانش‌آموز</option>
-              {(lookups.students || []).map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+              onChange={setStudentId}
+              placeholder="نام دانش‌آموز را جست‌وجو کنید..."
+              ariaLabel="دانش‌آموز"
+              options={(lookups.students || []).map((s) => ({ value: s.id, label: s.label }))}
+            />
           </div>
           <div className="form-field full-width">
             <label htmlFor="booking-question">موضوع گفت‌وگو</label>
@@ -167,33 +164,25 @@ function SlotForm({ onClose, onSaved }) {
           {field('capacity', 'ظرفیت هر بازه', 'number', { min: 1, max: 60 })}
           <div className="form-field">
             <label htmlFor="slot-teacher">معلم</label>
-            <select
+            <SearchSelect
               id="slot-teacher"
               value={values.teacher_id}
-              onChange={(e) => setValues({ ...values, teacher_id: e.target.value })}
-            >
-              <option value="">انتخاب معلم</option>
-              {(lookups?.teachers || []).map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setValues({ ...values, teacher_id: v })}
+              placeholder="نام معلم را جست‌وجو کنید..."
+              ariaLabel="معلم"
+              options={(lookups?.teachers || []).map((t) => ({ value: t.id, label: t.label }))}
+            />
           </div>
           <div className="form-field">
             <label htmlFor="slot-class">کلاس</label>
-            <select
+            <SearchSelect
               id="slot-class"
               value={values.class_id}
-              onChange={(e) => setValues({ ...values, class_id: e.target.value })}
-            >
-              <option value="">انتخاب کلاس</option>
-              {(lookups?.classes || []).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setValues({ ...values, class_id: v })}
+              placeholder="جست‌وجو یا انتخاب کلاس..."
+              ariaLabel="کلاس"
+              options={(lookups?.classes || []).map((c) => ({ value: c.id, label: c.label }))}
+            />
           </div>
           <div className="form-field full-width">
             <label htmlFor="slot-location">مکان</label>

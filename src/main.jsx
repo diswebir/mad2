@@ -6,6 +6,10 @@ import './styles.css';
 import './polish.css';
 import { AppProvider, useApp } from './context';
 import { featureAvailable } from '../shared/catalog';
+import { loadCachedUiTheme } from './lib/ui-theme';
+// پالت انتخابی مدیر باید قبل از اولین رنگ‌آمیزی صفحه اعمال شود تا ورودی‌ها
+// و صفحهٔ ورود هم با همان تم دیده شوند (مقدار از /api/config هم دوباره همگام می‌شود).
+loadCachedUiTheme();
 const routeFeatures = {
   students: 'students.view',
   teachers: 'teachers.view',

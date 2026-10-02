@@ -17,10 +17,26 @@ import {
   accountUsable,
   positiveId,
   pageNumber,
+  UI_PALETTES,
+  UI_FONT_SCALES,
 } from '../security.js';
 export function settingsRouter(db, security) {
   const router = Router();
   router.use(security.auth, security.admin);
+  router.patch('/ui', security.feature('settings.school'), (req, res) => {
+    const data = parse(
+      z.object({
+        palette: z.enum(UI_PALETTES),
+        font_scale: z.enum(UI_FONT_SCALES),
+      }),
+      req.body,
+    );
+    db.transaction(() => {
+      db.setSetting('ui', data);
+      log(db, req.user, 'settings.ui', 'settings', null, data);
+    });
+    res.json(data);
+  });
   router.patch('/school', security.feature('settings.school'), (req, res) => {
     const data = parse(
       z.object({

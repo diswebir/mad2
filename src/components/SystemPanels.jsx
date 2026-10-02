@@ -311,22 +311,26 @@ export function StatusPanel() {
           </li>
         ))}
       </ul>
-      {data.vendor && (
-        <p className="muted small-text vendor-line">
-          <Icon name="BadgeCheck" size={15} />
-          سازنده: <strong>{data.vendor.name}</strong>
-          <a href={data.vendor.url} target="_blank" rel="noreferrer" dir="ltr">
-            {data.vendor.url}
-          </a>
-        </p>
-      )}
-      <p className="muted small-text">
-        آخرین پشتیبان‌گیری: {data.last_backup_at ? dateFa(data.last_backup_at) : 'ثبت نشده'} · آخرین
-        رویداد: {data.last_audit_at ? dateFa(data.last_audit_at) : '—'}
-      </p>
-      <Button variant="secondary" icon="RefreshCw" onClick={refresh}>
-        بررسی دوباره
-      </Button>
+      <div className="status-footer">
+        <div>
+          {data.vendor && (
+            <p className="muted small-text vendor-line">
+              <Icon name="BadgeCheck" size={15} />
+              سازنده: <strong>{data.vendor.name}</strong>
+              <a href={data.vendor.url} target="_blank" rel="noreferrer" dir="ltr">
+                {data.vendor.url}
+              </a>
+            </p>
+          )}
+          <p className="muted small-text">
+            آخرین پشتیبان‌گیری: {data.last_backup_at ? dateFa(data.last_backup_at) : 'ثبت نشده'} ·
+            آخرین رویداد: {data.last_audit_at ? dateFa(data.last_audit_at) : '—'}
+          </p>
+        </div>
+        <Button variant="secondary" icon="RefreshCw" onClick={refresh}>
+          بررسی دوباره
+        </Button>
+      </div>
     </section>
   );
 }

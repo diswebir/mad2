@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { featureDefs, roles } from '../../shared/catalog';
 import { useApp, useApi } from '../context';
 import { api, dateFa, download, fa, query, today } from '../lib/api';
+import { PALETTES, FONT_SCALES, applyUiTheme, cacheUiTheme } from '../lib/ui-theme';
 import {
   Avatar,
   Badge,
@@ -18,6 +19,7 @@ import {
   PageHeader,
   SearchInput,
   Switch,
+  SearchSelect,
 } from '../components/ui';
 import {
   ErrorReportsPanel,
@@ -192,18 +194,14 @@ function AddAccount({ onClose, onSaved }) {
           {values.role === 'parent' && (
             <label>
               دانش‌آموز مرتبط
-              <select
+              <SearchSelect
                 required
                 value={values.student_id}
-                onChange={(e) => setValues((v) => ({ ...v, student_id: e.target.value }))}
-              >
-                <option value="">انتخاب دانش‌آموز</option>
-                {lookups.students?.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setValues((x) => ({ ...x, student_id: v }))}
+                placeholder="نام دانش‌آموز را جست‌وجو کنید..."
+                ariaLabel="دانش‌آموز مرتبط"
+                options={(lookups.students || []).map((s) => ({ value: s.id, label: s.label }))}
+              />
             </label>
           )}
           <label>
@@ -559,6 +557,127 @@ function Backup() {
     </section>
   );
 }
+// ---------------------------------------------------------------------------
+// ظاهر برنامه — پالت رنگی و اندازهٔ فونت رابط کاربری.
+// انتخاب‌ها زنده اعمال می‌شوند تا مدیر نتیجه را همان لحظه ببیند؛ با «ذخیره»
+// در تنظیمات مدرسه می‌ماند و برای همهٔ کاربران همین نصب اعمال می‌شود.
+// ---------------------------------------------------------------------------
+function Appearance() {
+  const { config, refreshConfig, toast } = useApp();
+  const [ui, setUi] = useState(() => config.ui || { palette: 'violet', font_scale: 'medium' });
+  const [busy, setBusy] = useState(false),
+    [saved, setSaved] = useState(false);
+  const pick = (patch) => {
+    const next = { ...ui, ...patch };
+    setUi(next);
+    setSaved(false);
+    applyUiTheme(next);
+    cacheUiTheme(next);
+  };
+  const save = async () => {
+    setBusy(true);
+    try {
+      await api('/settings/ui', { method: 'PATCH', body: ui });
+      await refreshConfig();
+      setSaved(true);
+      toast('ظاهر برنامه ذخیره شد');
+    } catch (e) {
+      toast(e.message || 'ذخیره نشد؛ دوباره تلاش کنید.', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const reset = () => pick({ palette: 'violet', font_scale: 'medium' });
+  return (
+    <div className="panel appearance-panel">
+      <div className="panel-heading">
+        <div>
+          <h2>پالت رنگی و ظاهر</h2>
+          <p className="muted small-text">
+            رنگ‌ها را با سلیقهٔ مدرسه انتخاب کنید؛ کنتراست همهٔ پالت‌ها برای خوانایی تأیید شده است.
+          </p>
+        </div>
+        <div className="panel-actions">
+          <Button variant="secondary" icon="History" onClick={reset}>
+            بازگردانی پیش‌فرض
+          </Button>
+          <Button icon={saved ? 'Check' : 'Paintbrush'} loading={busy} onClick={save}>
+            {saved ? 'ذخیره شد' : 'ذخیرهٔ ظاهر'}
+          </Button>
+        </div>
+      </div>
+      <h3 className="appearance-title">
+        <Icon name="Palette" size={18} />
+        پالت رنگی
+      </h3>
+      <div className="palette-grid">
+        {PALETTES.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            className={`palette-card ${ui.palette === p.id ? 'active' : ''}`}
+            onClick={() => pick({ palette: p.id })}
+            aria-pressed={ui.palette === p.id}
+          >
+            <span className="palette-swatch">
+              {p.swatch.map((c) => (
+                <i key={c} style={{ background: c }} />
+              ))}
+            </span>
+            <strong>{p.name}</strong>
+            <small>{p.hint}</small>
+            {ui.palette === p.id && <Icon name="Check" size={17} className="palette-check" />}
+          </button>
+        ))}
+      </div>
+      <h3 className="appearance-title">
+        <Icon name="Type" size={18} />
+        اندازهٔ نوشته‌ها
+      </h3>
+      <div className="font-scale-row">
+        {FONT_SCALES.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            className={`font-scale-btn ${ui.font_scale === f.id ? 'active' : ''}`}
+            onClick={() => pick({ font_scale: f.id })}
+            aria-pressed={ui.font_scale === f.id}
+          >
+            <span>{f.name}</span>
+            <small>{f.hint}</small>
+          </button>
+        ))}
+      </div>
+      <div className="appearance-preview">
+        <h3 className="appearance-title">
+          <Icon name="Eye" size={18} />
+          پیش‌نمایش زنده
+        </h3>
+        <div className="preview-card">
+          <div className="preview-head">
+            <span className="preview-avatar">م</span>
+            <div>
+              <strong>مریم احمدی</strong>
+              <small>دانش‌آموز پایهٔ ششم · کلاس ۶/۱</small>
+            </div>
+            <Badge tone="green" dot>
+              حاضر
+            </Badge>
+          </div>
+          <p className="muted small-text">
+            این بخش نشان می‌دهد رنگ‌ها و اندازهٔ نوشته‌ها پس از ذخیره چگونه دیده می‌شوند.
+          </p>
+          <div className="preview-actions">
+            <Button icon="Check">تأیید</Button>
+            <Button variant="secondary" icon="Send">
+              ارسال پیام
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 export default function Settings() {
   const { user, can } = useApp();
   const [params, setParams] = useSearchParams();
@@ -572,6 +691,7 @@ export default function Settings() {
     );
   const tabs = [
     ...(can('settings.school') ? [['school', 'مشخصات مدرسه', 'School']] : []),
+    ...(can('settings.school') ? [['appearance', 'ظاهر برنامه', 'Palette']] : []),
     ...(can('settings.accounts') ? [['accounts', 'حساب‌های کاربری', 'UsersRound']] : []),
     ...(can('terms.view') ? [['terms', 'سال تحصیلی', 'CalendarRange']] : []),
     ...(can('settings.audit') ? [['audit', 'رویدادهای سامانه', 'ClipboardList']] : []),
@@ -607,6 +727,8 @@ export default function Settings() {
       </div>
       {tab === 'school' ? (
         <SchoolSettings />
+      ) : tab === 'appearance' ? (
+        <Appearance />
       ) : tab === 'accounts' ? (
         <Accounts />
       ) : tab === 'terms' ? (

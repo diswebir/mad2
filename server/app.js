@@ -64,8 +64,9 @@ export function createApp(
           fontSrc: ["'self'"],
           imgSrc: ["'self'", 'data:', 'blob:'],
           connectSrc: ["'self'"],
-          frameAncestors:
-            process.env.NODE_ENV === 'production'
+          frameAncestors: demo
+            ? ["'self'", 'https://disweb.ir', 'https://*.disweb.ir']
+            : process.env.NODE_ENV === 'production'
               ? ["'self'"]
               : ["'self'", 'https://arena.ai', 'https://*.arena.ai', 'https://*.e2b.app'],
           upgradeInsecureRequests: null,
@@ -84,7 +85,7 @@ export function createApp(
   api.get('/health', (_req, res) =>
     res.json({
       status: 'ok',
-      version: '1.1.1',
+      version: '1.2.0',
       installed: !!db.setting('installed'),
       vendor: VENDOR.name,
       vendor_latin: VENDOR.name_latin,

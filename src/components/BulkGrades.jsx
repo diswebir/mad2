@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api, describeError, fa } from '../lib/api';
 import { useApp } from '../context';
-import { Button, ErrorBox, Icon, Modal } from './ui';
+import { Button, ErrorBox, Icon, Modal, SearchSelect } from './ui';
 
 // Enter one column of scores for a whole class instead of opening a form per student.
 export function BulkGrades({ onClose, onSaved }) {
@@ -85,29 +85,25 @@ export function BulkGrades({ onClose, onSaved }) {
         <div className="form-grid">
           <div className="form-field">
             <label htmlFor="bulk-class">کلاس</label>
-            <select id="bulk-class" value={classId} onChange={(e) => setClassId(e.target.value)}>
-              <option value="">انتخاب کلاس</option>
-              {(lookups.classes || []).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              id="bulk-class"
+              value={classId}
+              onChange={setClassId}
+              placeholder="جست‌وجو یا انتخاب کلاس..."
+              ariaLabel="کلاس"
+              options={(lookups.classes || []).map((c) => ({ value: c.id, label: c.label }))}
+            />
           </div>
           <div className="form-field">
             <label htmlFor="bulk-subject">درس</label>
-            <select
+            <SearchSelect
               id="bulk-subject"
               value={subjectId}
-              onChange={(e) => setSubjectId(e.target.value)}
-            >
-              <option value="">انتخاب درس</option>
-              {(lookups.subjects || []).map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+              onChange={setSubjectId}
+              placeholder="جست‌وجو یا انتخاب درس..."
+              ariaLabel="درس"
+              options={(lookups.subjects || []).map((s) => ({ value: s.id, label: s.label }))}
+            />
           </div>
           <div className="form-field">
             <label htmlFor="bulk-title">عنوان ارزشیابی</label>

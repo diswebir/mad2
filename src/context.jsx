@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { api, setCsrf, today } from './lib/api';
 import { featureAvailable } from '../shared/catalog';
+import { applyUiTheme, cacheUiTheme } from './lib/ui-theme';
 const emptyNotifications = { items: [], unread: 0, total: 0, page: 1, pages: 1, loading: false };
 const isAblating = (error) => ['AUTH_REQUIRED', 'PASSWORD_CHANGE_REQUIRED'].includes(error?.code);
 const AppContext = createContext(null);
@@ -50,6 +51,10 @@ export function AppProvider({ children }) {
   const dismissToast = (id) => setToasts((t) => t.filter((x) => x.id !== id));
   const refreshConfig = useCallback(async () => {
     const c = await api('/config');
+    if (c.ui) {
+      applyUiTheme(c.ui);
+      cacheUiTheme(c.ui);
+    }
     setConfig(c);
     return c;
   }, []);

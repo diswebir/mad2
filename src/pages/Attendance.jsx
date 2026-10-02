@@ -404,6 +404,17 @@ export default function Attendance() {
               </div>
             )}
           </section>
+          {editable && changed.length > 0 && (
+            <div className="mobile-save-bar" role="status">
+              <span>
+                <Icon name="Info" size={16} />
+                {fa(changed.length)} تغییر ذخیره‌نشده
+              </span>
+              <Button icon="Save" loading={busy} onClick={save}>
+                ذخیره تغییرات
+              </Button>
+            </div>
+          )}
           {history.data && (
             <section className="panel history-panel">
               <div className="panel-heading">

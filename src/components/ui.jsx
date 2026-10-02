@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api, today } from '../lib/api';
 import { daysInMonth, jalaliMonths, jalaliParts, jalaliToIso } from '../../shared/jalali';
@@ -104,6 +104,9 @@ import {
   ShoppingCart,
   AlertTriangle,
   Globe,
+  Palette,
+  Type,
+  Paintbrush,
 } from 'lucide-react';
 const icons = {
   LayoutDashboard,
@@ -207,6 +210,9 @@ const icons = {
   ShoppingCart,
   AlertTriangle,
   Globe,
+  Palette,
+  Type,
+  Paintbrush,
 };
 export function Icon({ name, size = 20, ...props }) {
   const Component = icons[name] || Circle;
@@ -443,6 +449,163 @@ export function SearchInput({ value, onChange, placeholder = 'جست‌وجو...
         placeholder={placeholder}
       />
       {value && <IconButton name="X" label="پاک کردن جست‌وجو" onClick={() => onChange('')} />}
+    </div>
+  );
+}
+// ---------------------------------------------------------------------------
+// SearchSelect — فهرست کشویی جست‌وجو‌پذیر برای انتخاب دانش‌آموز، معلم، کتاب و …
+// فهرست‌های طولانی داخل <select> بومی هم پیدا کردنشان سخت است و هم فونت و RTL
+// درستی ندارند؛ این مؤلفه با جست‌وجو، کیبورد و ارتفاع لمسی درست، هر دو مشکل را
+// حل می‌کند. options = [{ value, label, hint? }]
+// ---------------------------------------------------------------------------
+export function SearchSelect({
+  options = [],
+  value,
+  onChange,
+  placeholder = 'جست‌وجو یا انتخاب کنید…',
+  id,
+  name,
+  required,
+  disabled,
+  className = '',
+  emptyText = 'موردی پیدا نشد',
+  ariaLabel,
+}) {
+  const boxRef = useRef(null),
+    inputRef = useRef(null);
+  const [open, setOpen] = useState(false),
+    [query, setQuery] = useState(''),
+    [active, setActive] = useState(0);
+  const selected = options.find((o) => String(o.value) === String(value)) || null;
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => `${o.label} ${o.hint || ''}`.toLowerCase().includes(q));
+  }, [options, query]);
+  useEffect(() => {
+    const close = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('touchstart', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+    };
+  }, []);
+  useEffect(() => {
+    if (open) {
+      const at = filtered.findIndex((o) => String(o.value) === String(value));
+      setActive(at >= 0 ? at : 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  const pick = (option) => {
+    onChange?.(option.value);
+    setOpen(false);
+    setQuery('');
+  };
+  const onKeyDown = (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!open) {
+        setOpen(true);
+        return;
+      }
+      const dir = e.key === 'ArrowDown' ? 1 : -1;
+      setActive((i) => (i + dir + filtered.length) % Math.max(filtered.length, 1));
+    } else if (e.key === 'Enter') {
+      if (open && filtered[active]) {
+        e.preventDefault();
+        pick(filtered[active]);
+      }
+    } else if (e.key === 'Escape') {
+      if (open) {
+        e.preventDefault();
+        setOpen(false);
+        setQuery('');
+      }
+    } else if (e.key === 'Backspace' && !query && selected && !open) {
+      onChange?.('');
+    }
+  };
+  return (
+    <div
+      className={`search-select ${open ? 'open' : ''} ${disabled ? 'is-disabled' : ''} ${className}`}
+      ref={boxRef}
+    >
+      <div className="search-select-control">
+        <Icon name="Search" size={17} />
+        <input
+          ref={inputRef}
+          id={id}
+          name={name}
+          dir="rtl"
+          role="combobox"
+          aria-expanded={open}
+          aria-autocomplete="list"
+          aria-label={ariaLabel || placeholder}
+          autoComplete="off"
+          disabled={disabled}
+          required={required && !selected && !query}
+          value={open ? query : (selected?.label ?? '')}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={onKeyDown}
+          placeholder={selected && !open ? selected.label : placeholder}
+        />
+        {selected && !disabled && (
+          <button
+            type="button"
+            className="search-select-clear"
+            aria-label="پاک کردن انتخاب"
+            onClick={() => {
+              onChange?.('');
+              setQuery('');
+              inputRef.current?.focus();
+            }}
+          >
+            <Icon name="X" size={14} />
+          </button>
+        )}
+        <Icon name="ChevronDown" size={17} className="search-select-arrow" />
+      </div>
+      {open && (
+        <ul className="search-select-menu" role="listbox">
+          {filtered.length === 0 ? (
+            <li className="search-select-empty">{emptyText}</li>
+          ) : (
+            filtered.slice(0, 200).map((o, i) => (
+              <li
+                key={o.value}
+                role="option"
+                data-value={o.value}
+                aria-selected={String(o.value) === String(value)}
+                className={`search-select-option ${i === active ? 'active' : ''} ${
+                  String(o.value) === String(value) ? 'chosen' : ''
+                }`}
+                onMouseEnter={() => setActive(i)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  pick(o);
+                }}
+              >
+                <span className="search-select-label">{o.label}</span>
+                {o.hint && <span className="search-select-hint">{o.hint}</span>}
+              </li>
+            ))
+          )}
+          {filtered.length > 200 && (
+            <li className="search-select-empty">بیش از ۲۰۰ مورد؛ دقیق‌تر جست‌وجو کنید</li>
+          )}
+        </ul>
+      )}
     </div>
   );
 }

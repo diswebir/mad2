@@ -107,6 +107,28 @@ export const normalizeBase = (value = '') => {
   if (!raw || raw === '/') return '';
   return `/${raw.replace(/^\/+|\/+$/g, '')}`;
 };
+// UI preferences (palette + font scale) chosen by the school administrator.
+// Both values are validated here and at the settings endpoint; unknown values fall
+// back to the defaults so an old database can never leave the interface unstyled.
+export const UI_PALETTES = [
+  'violet',
+  'sky',
+  'emerald',
+  'rose',
+  'amber',
+  'ocean',
+  'indigo',
+  'graphite',
+  'crimson',
+];
+export const UI_FONT_SCALES = ['small', 'medium', 'large', 'xlarge'];
+export const uiSettings = (db) => {
+  const saved = db.setting('ui', {}) || {};
+  return {
+    palette: UI_PALETTES.includes(saved.palette) ? saved.palette : 'violet',
+    font_scale: UI_FONT_SCALES.includes(saved.font_scale) ? saved.font_scale : 'medium',
+  };
+};
 export function makeSecurity(db, { basePath, license = null } = {}) {
   const security = { basePath: normalizeBase(basePath ?? process.env.BASE_PATH) };
   // «لایسنس» تعیین می‌کند کدام ماژول‌های فروخته‌شده روی این نصب مجاز هستند.
@@ -137,6 +159,7 @@ export function makeSecurity(db, { basePath, license = null } = {}) {
       entitled: featureEntitled(license, f.id),
     })),
     school: db.setting('school', {}),
+    ui: uiSettings(db),
     feature_count: featureDefs.length,
     entitled_count: featureDefs.filter((f) => featureEntitled(license, f.id)).length,
     license: license ? entitlementSummary(license) : null,
